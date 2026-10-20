@@ -7,7 +7,8 @@
 --   "-- @common"          one WITH list: identities, marks, groups and per-PR facts
 --   "-- @metric <name>"   one SELECT per metric; it is appended to @common
 -- The first column of every metric is the row key: tool:<name>, mode:<name>, week:<YEARWEEK>,
--- pr:<PR id>, check:<name>. Grafana macros, as written in DevLake dashboards:
+-- pr:<PR id>, check:<name>; a key that combines two parts joins them with | (tool:cursor|week:202610,
+-- mode:cloud_agent|tool:cursor) so that no two rows share a key. Grafana macros, as written in DevLake dashboards:
 --   $__timeFilter(pr.created_date)   the dashboard time range, on the time the PR was opened
 --   $__timeFilter(pr.merged_date)    the same range, on the time the PR was merged
 --   ${repo_id}                       the repo variable
@@ -40,8 +41,8 @@ WITH identities(tool, mode, field, pattern) AS (
   SELECT 'copilot', 'cloud', 'pr_author', '^(copilot|copilot-swe-agent\\[bot\\])$'
   UNION ALL SELECT 'copilot', 'review', 'review_author', '^(copilot|copilot-pull-request-reviewer\\[bot\\])$'
   UNION ALL SELECT 'cursor', 'cloud', 'pr_author', '^cursor\\[bot\\]$'
-  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_name', '^cursoragent$'
-  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_email', '^cursoragent@'   -- UNVERIFIED placeholder (mechanism test), see agent_identities.md
+  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_name', '^cursor agent$'                   -- git name seen in public commits, agent_identities.md table B
+  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_email', '^cursoragent@cursor\\.com$'       -- git e-mail seen in public commits, agent_identities.md table B
   UNION ALL SELECT 'claude', 'cloud', 'pr_author', '^claude\\[bot\\]$'
   UNION ALL SELECT 'claude', 'cloud', 'commit_author_name', '^claude$'
   UNION ALL SELECT 'claude', 'assist', 'coauthor', 'claude\\b'
@@ -217,6 +218,10 @@ pr_mode AS (
   UNION
   SELECT pr_id, 'review_agent' FROM marks WHERE mark = 'm6'
 ),
+pr_cloud_tool AS (
+  -- the tools whose cloud agent opened the PR or made its first commit (m1, m2)
+  SELECT DISTINCT pr_id, tool FROM marks WHERE mark IN ('m1', 'm2')
+),
 pr_group AS (
   SELECT pr_id, CONCAT('tool:', tool) AS grp FROM pr_tool
   UNION ALL
@@ -324,6 +329,7 @@ ORDER BY ag.grp
 -- @metric throughput
 -- Merged PRs merged in the period. tool:/mode: rows = the period total of the group.
 -- week:<YEARWEEK(merged_date, 3)> rows = the PRs merged in that week, all and per mode.
+-- tool:<name>|week:<YEARWEEK> rows = the PRs of that tool merged in that week (only the combinations that have one).
 SELECT
   ag.grp,
   COALESCE(s.merged, 0) AS merged,
@@ -351,6 +357,14 @@ SELECT
 FROM pr_facts f
 WHERE f.in_merged = 1
 GROUP BY f.yw
+UNION ALL
+SELECT
+  CONCAT(g.grp, '|week:', f.yw),
+  COUNT(*),
+  NULL, NULL, NULL, NULL, NULL
+FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id
+WHERE f.in_merged = 1 AND g.grp LIKE 'tool:%'
+GROUP BY g.grp, f.yw
 ORDER BY 1
 
 -- @metric batch_size
@@ -378,6 +392,8 @@ ORDER BY ag.grp
 -- @metric cloud_agent_outcomes
 -- prs, closed, open: PRs opened in the period. merged: PRs merged in the period (D12), so merged + closed
 -- + open can differ from prs.
+-- mode:cloud_agent = all cloud agent PRs. mode:cloud_agent|tool:<name> = the cloud agent PRs of one tool (m1 or m2 of that
+-- tool); a PR with two cloud tools is in both rows, so the rows of the tools can add up to more than the first row.
 SELECT
   'mode:cloud_agent' AS grp,
   (SELECT COUNT(*) FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id
@@ -388,6 +404,19 @@ SELECT
     WHERE g.grp = 'mode:cloud_agent' AND f.in_created = 1 AND f.status = 'CLOSED') AS closed,
   (SELECT COUNT(*) FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id
     WHERE g.grp = 'mode:cloud_agent' AND f.in_created = 1 AND f.status = 'OPEN') AS open
+UNION ALL
+SELECT
+  CONCAT('mode:cloud_agent|', ag.grp),
+  (SELECT COUNT(*) FROM pr_cloud_tool ct JOIN pr_facts f ON f.id = ct.pr_id
+    WHERE CONCAT('tool:', ct.tool) = ag.grp AND f.in_created = 1),
+  (SELECT COUNT(*) FROM pr_cloud_tool ct JOIN pr_facts f ON f.id = ct.pr_id
+    WHERE CONCAT('tool:', ct.tool) = ag.grp AND f.in_merged = 1 AND f.status = 'MERGED'),
+  (SELECT COUNT(*) FROM pr_cloud_tool ct JOIN pr_facts f ON f.id = ct.pr_id
+    WHERE CONCAT('tool:', ct.tool) = ag.grp AND f.in_created = 1 AND f.status = 'CLOSED'),
+  (SELECT COUNT(*) FROM pr_cloud_tool ct JOIN pr_facts f ON f.id = ct.pr_id
+    WHERE CONCAT('tool:', ct.tool) = ag.grp AND f.in_created = 1 AND f.status = 'OPEN')
+FROM all_groups ag
+WHERE ag.grp LIKE 'tool:%' AND ag.grp <> 'tool:everything_else'
 
 -- @metric pr_classification
 -- One row per PR: the marks that hit (mark:tool), the tools, the modes. For checking the classification directly.

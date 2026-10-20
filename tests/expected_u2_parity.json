@@ -6,10 +6,10 @@
  "metrics": {
   "time_to_first_review": {
    "tool:claude": {
-    "prs": 5,
-    "n_defined": 5,
-    "mean_minutes": 60.0,
-    "median_minutes": 60
+    "prs": 6,
+    "n_defined": 6,
+    "mean_minutes": 58.333333,
+    "median_minutes": 50
    },
    "tool:codex": {
     "prs": 0,
@@ -18,7 +18,7 @@
     "median_minutes": null
    },
    "tool:coderabbit": {
-    "prs": 3,
+    "prs": 4,
     "n_defined": 1,
     "mean_minutes": 60.0,
     "median_minutes": 60
@@ -36,10 +36,10 @@
     "median_minutes": null
    },
    "tool:cursor": {
-    "prs": 6,
-    "n_defined": 6,
-    "mean_minutes": 67.5,
-    "median_minutes": 60
+    "prs": 9,
+    "n_defined": 8,
+    "mean_minutes": 59.375,
+    "median_minutes": 45
    },
    "tool:devin": {
     "prs": 3,
@@ -60,52 +60,52 @@
     "median_minutes": null
    },
    "tool:qodo": {
-    "prs": 1,
+    "prs": 2,
     "n_defined": 1,
     "mean_minutes": 120.0,
     "median_minutes": 120
    },
    "tool:everything_else": {
-    "prs": 26,
-    "n_defined": 14,
-    "mean_minutes": 70.357143,
+    "prs": 29,
+    "n_defined": 17,
+    "mean_minutes": 67.647059,
     "median_minutes": 60
    },
    "mode:cloud_agent": {
-    "prs": 10,
-    "n_defined": 7,
-    "mean_minutes": 68.571429,
+    "prs": 11,
+    "n_defined": 8,
+    "mean_minutes": 63.75,
     "median_minutes": 60
    },
    "mode:ai_assisted": {
-    "prs": 9,
-    "n_defined": 9,
-    "mean_minutes": 58.333333,
-    "median_minutes": 60
+    "prs": 13,
+    "n_defined": 12,
+    "mean_minutes": 53.75,
+    "median_minutes": 45
    },
    "mode:review_agent": {
-    "prs": 3,
+    "prs": 5,
     "n_defined": 1,
     "mean_minutes": 120.0,
     "median_minutes": 120
    },
    "mode:ai_used": {
-    "prs": 18,
-    "n_defined": 13,
-    "mean_minutes": 68.076923,
+    "prs": 24,
+    "n_defined": 16,
+    "mean_minutes": 62.8125,
     "median_minutes": 60
    },
    "mode:everything_else": {
-    "prs": 26,
-    "n_defined": 14,
-    "mean_minutes": 70.357143,
+    "prs": 29,
+    "n_defined": 17,
+    "mean_minutes": 67.647059,
     "median_minutes": 60
    }
   },
   "time_in_review": {
    "tool:claude": {
-    "n": 5,
-    "mean_minutes": 138.0,
+    "n": 6,
+    "mean_minutes": 123.333333,
     "median_minutes": 60
    },
    "tool:codex": {
@@ -129,9 +129,9 @@
     "median_minutes": null
    },
    "tool:cursor": {
-    "n": 6,
-    "mean_minutes": 97.5,
-    "median_minutes": 60
+    "n": 8,
+    "mean_minutes": 81.875,
+    "median_minutes": 45
    },
    "tool:devin": {
     "n": 1,
@@ -154,19 +154,19 @@
     "median_minutes": 120
    },
    "tool:everything_else": {
-    "n": 22,
-    "mean_minutes": 334.090909,
+    "n": 25,
+    "mean_minutes": 300.6,
     "median_minutes": 120
    },
    "mode:cloud_agent": {
-    "n": 7,
-    "mean_minutes": 132.857143,
-    "median_minutes": 120
+    "n": 8,
+    "mean_minutes": 120.0,
+    "median_minutes": 60
    },
    "mode:ai_assisted": {
-    "n": 9,
-    "mean_minutes": 121.666667,
-    "median_minutes": 60
+    "n": 12,
+    "mean_minutes": 101.25,
+    "median_minutes": 50
    },
    "mode:review_agent": {
     "n": 1,
@@ -174,21 +174,21 @@
     "median_minutes": 120
    },
    "mode:ai_used": {
-    "n": 13,
-    "mean_minutes": 111.923077,
+    "n": 16,
+    "mean_minutes": 98.4375,
     "median_minutes": 60
    },
    "mode:everything_else": {
-    "n": 22,
-    "mean_minutes": 334.090909,
+    "n": 25,
+    "mean_minutes": 300.6,
     "median_minutes": 120
    }
   },
   "pr_cycle_time": {
    "tool:claude": {
-    "n": 5,
-    "mean_minutes": 228.0,
-    "median_minutes": 240
+    "n": 6,
+    "mean_minutes": 220.0,
+    "median_minutes": 180
    },
    "tool:codex": {
     "n": 0,
@@ -211,8 +211,8 @@
     "median_minutes": null
    },
    "tool:cursor": {
-    "n": 6,
-    "mean_minutes": 340.0,
+    "n": 8,
+    "mean_minutes": 397.5,
     "median_minutes": 240
    },
    "tool:devin": {
@@ -236,18 +236,18 @@
     "median_minutes": 360
    },
    "tool:everything_else": {
-    "n": 22,
-    "mean_minutes": 603.636364,
+    "n": 25,
+    "mean_minutes": 557.6,
     "median_minutes": 240
    },
    "mode:cloud_agent": {
-    "n": 7,
-    "mean_minutes": 402.857143,
+    "n": 8,
+    "mean_minutes": 465.0,
     "median_minutes": 360
    },
    "mode:ai_assisted": {
-    "n": 9,
-    "mean_minutes": 286.666667,
+    "n": 12,
+    "mean_minutes": 325.0,
     "median_minutes": 240
    },
    "mode:review_agent": {
@@ -256,19 +256,19 @@
     "median_minutes": 360
    },
    "mode:ai_used": {
-    "n": 13,
-    "mean_minutes": 309.230769,
-    "median_minutes": 300
+    "n": 16,
+    "mean_minutes": 333.75,
+    "median_minutes": 240
    },
    "mode:everything_else": {
-    "n": 22,
-    "mean_minutes": 603.636364,
+    "n": 25,
+    "mean_minutes": 557.6,
     "median_minutes": 240
    }
   },
   "throughput": {
    "tool:claude": {
-    "merged": 5
+    "merged": 6
    },
    "tool:codex": {
     "merged": 0
@@ -283,7 +283,7 @@
     "merged": 0
    },
    "tool:cursor": {
-    "merged": 6
+    "merged": 8
    },
    "tool:devin": {
     "merged": 1
@@ -298,22 +298,22 @@
     "merged": 1
    },
    "tool:everything_else": {
-    "merged": 22
+    "merged": 25
    },
    "mode:cloud_agent": {
-    "merged": 7
+    "merged": 8
    },
    "mode:ai_assisted": {
-    "merged": 9
+    "merged": 12
    },
    "mode:review_agent": {
     "merged": 1
    },
    "mode:ai_used": {
-    "merged": 13
+    "merged": 16
    },
    "mode:everything_else": {
-    "merged": 22
+    "merged": 25
    },
    "week:202610": {
     "merged": 6,
@@ -324,35 +324,82 @@
     "merged_everything_else": 2
    },
    "week:202611": {
-    "merged": 9,
+    "merged": 11,
     "merged_cloud_agent": 2,
-    "merged_ai_assisted": 6,
+    "merged_ai_assisted": 7,
     "merged_review_agent": 0,
-    "merged_ai_used": 7,
-    "merged_everything_else": 2
+    "merged_ai_used": 8,
+    "merged_everything_else": 3
    },
    "week:202612": {
-    "merged": 8,
+    "merged": 10,
     "merged_cloud_agent": 1,
     "merged_ai_assisted": 0,
     "merged_review_agent": 1,
     "merged_ai_used": 1,
-    "merged_everything_else": 7
+    "merged_everything_else": 9
    },
    "week:202613": {
-    "merged": 12,
-    "merged_cloud_agent": 1,
-    "merged_ai_assisted": 0,
+    "merged": 13,
+    "merged_cloud_agent": 2,
+    "merged_ai_assisted": 1,
+    "merged_review_agent": 0,
+    "merged_ai_used": 2,
+    "merged_everything_else": 11
+   },
+   "week:202614": {
+    "merged": 1,
+    "merged_cloud_agent": 0,
+    "merged_ai_assisted": 1,
     "merged_review_agent": 0,
     "merged_ai_used": 1,
-    "merged_everything_else": 11
+    "merged_everything_else": 0
+   },
+   "tool:claude|week:202611": {
+    "merged": 5
+   },
+   "tool:claude|week:202614": {
+    "merged": 1
+   },
+   "tool:coderabbit|week:202611": {
+    "merged": 1
+   },
+   "tool:copilot|week:202613": {
+    "merged": 1
+   },
+   "tool:cursor|week:202610": {
+    "merged": 4
+   },
+   "tool:cursor|week:202611": {
+    "merged": 3
+   },
+   "tool:cursor|week:202613": {
+    "merged": 1
+   },
+   "tool:devin|week:202612": {
+    "merged": 1
+   },
+   "tool:everything_else|week:202610": {
+    "merged": 2
+   },
+   "tool:everything_else|week:202611": {
+    "merged": 3
+   },
+   "tool:everything_else|week:202612": {
+    "merged": 9
+   },
+   "tool:everything_else|week:202613": {
+    "merged": 11
+   },
+   "tool:qodo|week:202612": {
+    "merged": 1
    }
   },
   "batch_size": {
    "tool:claude": {
-    "prs": 5,
-    "mean_size": 18.4,
-    "median_size": 12,
+    "prs": 6,
+    "mean_size": 16.333333,
+    "median_size": 10,
     "share_lt200": 1.0,
     "share_200_499": 0.0,
     "share_ge500": 0.0
@@ -366,9 +413,9 @@
     "share_ge500": null
    },
    "tool:coderabbit": {
-    "prs": 3,
-    "mean_size": 10.0,
-    "median_size": 10,
+    "prs": 4,
+    "mean_size": 9.0,
+    "median_size": 8,
     "share_lt200": 1.0,
     "share_200_499": 0.0,
     "share_ge500": 0.0
@@ -390,8 +437,8 @@
     "share_ge500": null
    },
    "tool:cursor": {
-    "prs": 6,
-    "mean_size": 25.0,
+    "prs": 9,
+    "mean_size": 18.888889,
     "median_size": 20,
     "share_lt200": 1.0,
     "share_200_499": 0.0,
@@ -422,68 +469,128 @@
     "share_ge500": null
    },
    "tool:qodo": {
-    "prs": 1,
-    "mean_size": 30.0,
-    "median_size": 30,
+    "prs": 2,
+    "mean_size": 18.0,
+    "median_size": 6,
     "share_lt200": 1.0,
     "share_200_499": 0.0,
     "share_ge500": 0.0
    },
    "tool:everything_else": {
-    "prs": 26,
-    "mean_size": 66.153846,
+    "prs": 29,
+    "mean_size": 60.103448,
     "median_size": 15,
-    "share_lt200": 0.884615,
-    "share_200_499": 0.076923,
-    "share_ge500": 0.038462
+    "share_lt200": 0.896552,
+    "share_200_499": 0.068966,
+    "share_ge500": 0.034483
    },
    "mode:cloud_agent": {
-    "prs": 10,
-    "mean_size": 25.7,
+    "prs": 11,
+    "mean_size": 24.454545,
     "median_size": 30,
     "share_lt200": 1.0,
     "share_200_499": 0.0,
     "share_ge500": 0.0
    },
    "mode:ai_assisted": {
-    "prs": 9,
-    "mean_size": 21.333333,
-    "median_size": 20,
-    "share_lt200": 1.0,
-    "share_200_499": 0.0,
-    "share_ge500": 0.0
-   },
-   "mode:review_agent": {
-    "prs": 3,
-    "mean_size": 16.0,
-    "median_size": 10,
-    "share_lt200": 1.0,
-    "share_200_499": 0.0,
-    "share_ge500": 0.0
-   },
-   "mode:ai_used": {
-    "prs": 18,
-    "mean_size": 19.833333,
+    "prs": 13,
+    "mean_size": 16.769231,
     "median_size": 12,
     "share_lt200": 1.0,
     "share_200_499": 0.0,
     "share_ge500": 0.0
    },
+   "mode:review_agent": {
+    "prs": 5,
+    "mean_size": 12.0,
+    "median_size": 8,
+    "share_lt200": 1.0,
+    "share_200_499": 0.0,
+    "share_ge500": 0.0
+   },
+   "mode:ai_used": {
+    "prs": 24,
+    "mean_size": 16.458333,
+    "median_size": 10,
+    "share_lt200": 1.0,
+    "share_200_499": 0.0,
+    "share_ge500": 0.0
+   },
    "mode:everything_else": {
-    "prs": 26,
-    "mean_size": 66.153846,
+    "prs": 29,
+    "mean_size": 60.103448,
     "median_size": 15,
-    "share_lt200": 0.884615,
-    "share_200_499": 0.076923,
-    "share_ge500": 0.038462
+    "share_lt200": 0.896552,
+    "share_200_499": 0.068966,
+    "share_ge500": 0.034483
    }
   },
   "cloud_agent_outcomes": {
    "mode:cloud_agent": {
-    "prs": 10,
-    "merged": 7,
+    "prs": 11,
+    "merged": 8,
     "closed": 2,
     "open": 1
+   },
+   "mode:cloud_agent|tool:claude": {
+    "prs": 1,
+    "merged": 1,
+    "closed": 0,
+    "open": 0
+   },
+   "mode:cloud_agent|tool:codex": {
+    "prs": 0,
+    "merged": 0,
+    "closed": 0,
+    "open": 0
+   },
+   "mode:cloud_agent|tool:coderabbit": {
+    "prs": 1,
+    "merged": 1,
+    "closed": 0,
+    "open": 0
+   },
+   "mode:cloud_agent|tool:copilot": {
+    "prs": 2,
+    "merged": 1,
+    "closed": 1,
+    "open": 0
+   },
+   "mode:cloud_agent|tool:cubic": {
+    "prs": 0,
+    "merged": 0,
+    "closed": 0,
+    "open": 0
+   },
+   "mode:cloud_agent|tool:cursor": {
+    "prs": 4,
+    "merged": 4,
+    "closed": 0,
+    "open": 0
+   },
+   "mode:cloud_agent|tool:devin": {
+    "prs": 3,
+    "merged": 1,
+    "closed": 1,
+    "open": 1
+   },
+   "mode:cloud_agent|tool:graphite": {
+    "prs": 0,
+    "merged": 0,
+    "closed": 0,
+    "open": 0
+   },
+   "mode:cloud_agent|tool:macroscope": {
+    "prs": 0,
+    "merged": 0,
+    "closed": 0,
+    "open": 0
+   },
+   "mode:cloud_agent|tool:qodo": {
+    "prs": 0,
+    "merged": 0,
+    "closed": 0,
+    "open": 0
    }
   },
   "pr_classification": {
@@ -846,6 +953,78 @@
     "ai_used": 1,
     "in_created": 1,
     "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:246": {
+    "marks": "m6:coderabbit",
+    "tools": "coderabbit",
+    "modes": "review_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:247": {
+    "marks": "m6:qodo",
+    "tools": "qodo",
+    "modes": "review_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:248": {
+    "marks": "m2:cursor,m3:cursor",
+    "tools": "cursor",
+    "modes": "ai_assisted,cloud_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:249": {
+    "marks": "m5:cursor",
+    "tools": "cursor",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:250": {
+    "marks": "m4:claude",
+    "tools": "claude",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:251": {
+    "marks": "m5:cursor",
+    "tools": "cursor",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:252": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:253": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:254": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
    }
   },
   "diagnostics": {
@@ -871,7 +1050,7 @@
   },
   "Q02": {
    "pr_id": 202,
-   "scenario": "P-C2 PR author human, first commit author name cursoragent",
+   "scenario": "P-C2 PR author human, first commit author name Cursor Agent (the git name of the agent, mixed case)",
    "marks": "m2:cursor,m3:cursor",
    "time_to_first_review_min": 60,
    "time_in_review_min": 240,
@@ -1352,6 +1531,105 @@
    "size": 10,
    "yearweek_iso": null,
    "u1_first_human_min": null
+  },
+  "Q46": {
+   "pr_id": 246,
+   "scenario": "P-L1 review agent login in capitals (CodeRabbitAI[bot], is_bot = 1) writes the only review: m6 needs LOWER (mutation A)",
+   "marks": "m6:coderabbit",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 6,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q47": {
+   "pr_id": 247,
+   "scenario": "P-L2 review agent login in capitals and NOT flagged (Qodo-Code-Review[bot], is_bot = 0): acct needs LOWER, so the review is a bot review (mutation B)",
+   "marks": "m6:qodo",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 6,
+   "yearweek_iso": null,
+   "u1_first_human_min": 10
+  },
+  "Q48": {
+   "pr_id": 248,
+   "scenario": "P-L3 first commit e-mail in capitals (CursorAgent@Cursor.com), human name: m2 and m3 need LOWER on the e-mail (mutation C)",
+   "marks": "m2:cursor,m3:cursor",
+   "time_to_first_review_min": 30,
+   "time_in_review_min": 30,
+   "pr_cycle_min": 900,
+   "size": 12,
+   "yearweek_iso": 202613,
+   "u1_first_human_min": 30
+  },
+  "Q49": {
+   "pr_id": 249,
+   "scenario": "P-L4 JSON-string body, Made-with: Cursor on the 3rd line (the JSON shape of m5, mutation E)",
+   "marks": "m5:cursor",
+   "time_to_first_review_min": 40,
+   "time_in_review_min": 40,
+   "pr_cycle_min": 240,
+   "size": 5,
+   "yearweek_iso": 202611,
+   "u1_first_human_min": 40
+  },
+  "Q50": {
+   "pr_id": 250,
+   "scenario": "P-L5 JSON-string body, the FIRST line is a Co-authored-by trailer of Claude (the opening quote only, m4, mutation D)",
+   "marks": "m4:claude",
+   "time_to_first_review_min": 50,
+   "time_in_review_min": 50,
+   "pr_cycle_min": 180,
+   "size": 6,
+   "yearweek_iso": 202614,
+   "u1_first_human_min": 50
+  },
+  "Q51": {
+   "pr_id": 251,
+   "scenario": "P-L6 JSON-string body, the FIRST line is Made-with: Cursor (the opening quote only, m5, mutation D); OPEN",
+   "marks": "m5:cursor",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 3,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q52": {
+   "pr_id": 252,
+   "scenario": "P-L7 Co-authored-by: Claudette (a person whose name starts with Claude): not a Claude trailer, the word end is needed (mutation F)",
+   "marks": null,
+   "time_to_first_review_min": 20,
+   "time_in_review_min": 20,
+   "pr_cycle_min": 120,
+   "size": 5,
+   "yearweek_iso": 202611,
+   "u1_first_human_min": 20
+  },
+  "Q53": {
+   "pr_id": 253,
+   "scenario": "P-L8 commit e-mail xcursoragent@cursor.com with a human name: not the agent, the start anchor of the e-mail is needed (mutation G)",
+   "marks": null,
+   "time_to_first_review_min": 25,
+   "time_in_review_min": 25,
+   "pr_cycle_min": 180,
+   "size": 8,
+   "yearweek_iso": 202612,
+   "u1_first_human_min": 25
+  },
+  "Q54": {
+   "pr_id": 254,
+   "scenario": "P-L9 an APPROVED at exactly the merge time is not counted (strict <, D9); the earlier APPROVED ends Time in review (mutation H)",
+   "marks": null,
+   "time_to_first_review_min": 120,
+   "time_in_review_min": 120,
+   "pr_cycle_min": 360,
+   "size": 10,
+   "yearweek_iso": 202612,
+   "u1_first_human_min": 120
   }
  }
 }

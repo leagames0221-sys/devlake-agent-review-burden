@@ -16,7 +16,8 @@ Usage: python tests/run_u1.py [--sql PATH] [--fixture PATH] [--expected PATH] [-
 
 The first column of every "-- @metric" result is the row key. It must be unique inside one metric
 (a repeated key stops the test). U1 uses the agent name as the key; U2 uses composite keys such as
-tool:<name>, mode:<name>, week:<YEARWEEK>, pr:<PR id>, check:<name>. Values are compared as numbers
+tool:<name>, mode:<name>, week:<YEARWEEK>, pr:<PR id>, check:<name>; a key that combines two parts joins them
+with | so that no two rows share a key (tool:<name>|week:<YEARWEEK>, mode:cloud_agent|tool:<name>). Values are compared as numbers
 (tolerance 1e-4) when the expected value is a json number, as exact text when it is a json string,
 and as NULL when it is json null.
 Exit code 0 = every expected value matched; 1 = a mismatch; 2 = an environment problem.
