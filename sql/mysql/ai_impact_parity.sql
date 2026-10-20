@@ -24,8 +24,9 @@
 -- Modes: cloud_agent = m1 or m2; ai_assisted = m3, m4, m5 (and x1, x2); review_agent = m6;
 -- ai_used = any of the three. A PR may be in several tools and several modes.
 --
--- Two shapes of the real tables that the first tests did not have (found in U4, ADR 0002 A1 and A2): the PR author is read from
--- accounts.user_name (author_login), and commits.message (a longblob) is converted with CONVERT(... USING utf8mb4) before LOWER().
+-- Three shapes of the real tables that the first tests did not have (found in U4, ADR 0002 A1, A2 and D15): the PR author is read from
+-- accounts.user_name (author_login), commits.message (a longblob) is converted with CONVERT(... USING utf8mb4) before LOWER(), and the
+-- text of a commit of a PR is read from commits first and from the GitHub tool table _tool_github_commits second (CTE tool_commits).
 --
 -- Text matching (DevLake's collation is utf8mb4_bin, so every match is made on LOWER(text) with a
 -- lower-case pattern): login and name patterns are anchored with ^...$ and a literal [bot] is written
@@ -146,21 +147,33 @@ final_approval AS (
   WHERE hr.status = 'APPROVED' AND p.merged_date IS NOT NULL AND hr.created_date < p.merged_date
   GROUP BY hr.pr_id
 ),
+tool_commits AS (
+  -- ADJUSTMENT POINT (ADR 0002 D15): where the text of a commit of a PR is read from when `commits` has none. The default is the
+  -- tool-layer table of DevLake's GitHub plugin (primary key sha only, no connection column; `message` is the text of the commit as GitHub
+  -- gave it). That table exists only when the GitHub plugin was built (a DevLake built with DEVLAKE_PLUGINS=gitlab,... does not have it): in
+  -- that case replace the line below by an empty list with the same two columns, and the SQL reads `commits` only:
+  --   SELECT CAST(NULL AS CHAR(40)) AS sha, CAST(NULL AS CHAR) AS message FROM (SELECT 1) one WHERE 1 = 0
+  SELECT t.sha, t.message FROM _tool_github_commits t
+),
 pr_commit AS (
-  -- commits is joined with LEFT JOIN: a PR whose message is not in commits stays in every count
+  -- commits and tool_commits are joined with LEFT JOIN: a PR whose message is in neither stays in every count
   SELECT
     prc.pull_request_id AS pr_id,
     prc.commit_sha,
     prc.commit_author_name,
     prc.commit_author_email,
     prc.commit_authored_date,
-    -- commits.message is a longblob in a real DevLake (ADR 0002 A2): LOWER() and REGEXP_LIKE() on a binary string are case-sensitive,
-    -- so the text is converted first
-    CONVERT(cm.message USING utf8mb4) AS message,
+    -- the text of the commit (ADR 0002 D15): the domain-layer `commits.message` first, then the tool table. commits.message is a longblob in a
+    -- real DevLake (ADR 0002 A2): LOWER() and REGEXP_LIKE() on a binary string are case-sensitive, so the text is converted first. An empty
+    -- text counts as no text (NULLIF), so the tool table is read then, too.
+    COALESCE(NULLIF(CONVERT(cm.message USING utf8mb4), ''), t.message) AS message,
+    -- 1 when the text of this commit came from the tool table (the domain-layer text is missing or empty and the tool table has one)
+    CASE WHEN NULLIF(CONVERT(cm.message USING utf8mb4), '') IS NULL AND t.message IS NOT NULL THEN 1 ELSE 0 END AS from_tool,
     MIN(prc.commit_authored_date) OVER (PARTITION BY prc.pull_request_id) AS first_commit_at
   FROM pull_request_commits prc
   JOIN pr_base p ON p.id = prc.pull_request_id
   LEFT JOIN commits cm ON cm.sha = prc.commit_sha
+  LEFT JOIN tool_commits t ON t.sha = prc.commit_sha
 ),
 marks AS (
   -- m1: the PR author is a cloud agent
@@ -444,13 +457,21 @@ FROM pr_base p
 ORDER BY p.id
 
 -- @metric diagnostics
--- prs_without_commit_message: PRs opened in the period for which no commit message could be read (see ADR 0002).
+-- prs_without_commit_message: PRs opened in the period for which no commit message could be read from `commits` nor from the tool table (D15).
+-- prs_commit_message_from_tool_table: PRs opened in the period with at least one commit whose message was read from the tool table because
+--   `commits` has no (or an empty) text for it (D15).
 -- tool_group_total_minus_pr_total: the sum of the tool groups minus the number of PRs (the overlap), PRs opened in the period.
 SELECT
   'check:prs_without_commit_message' AS grp,
   (SELECT COUNT(*) FROM pr_base p
     WHERE p.in_created = 1
       AND NOT EXISTS (SELECT 1 FROM pr_commit pc WHERE pc.pr_id = p.id AND pc.message IS NOT NULL)) AS value
+UNION ALL
+SELECT
+  'check:prs_commit_message_from_tool_table',
+  (SELECT COUNT(*) FROM pr_base p
+    WHERE p.in_created = 1
+      AND EXISTS (SELECT 1 FROM pr_commit pc WHERE pc.pr_id = p.id AND pc.from_tool = 1))
 UNION ALL
 SELECT
   'check:tool_group_total_minus_pr_total',

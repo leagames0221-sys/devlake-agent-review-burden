@@ -12,6 +12,7 @@
 --   [DE]   https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/core/models/domainlayer/domainlayer.go   (DomainEntity.Id)
 --   [PRC]  https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/core/models/domainlayer/code/pull_request_commit.go   (added for U2)
 --   [COM]  https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/core/models/domainlayer/code/commit.go   (added for U2)
+--   [TGC]  https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github/models/commit.go   (added for U2 D15; the tool-layer table _tool_github_commits)
 -- Where gorm gives no explicit type (plain string / time.Time / int / bool) the
 -- MySQL type below is the usual gorm default (longtext / datetime(3) / bigint /
 -- tinyint(1)); that mapping is an approximation, marked "default".
@@ -83,5 +84,15 @@ CREATE TABLE commits (
   authored_date   DATETIME(3),           -- [COM]#L36 AuthoredDate time.Time (default)
   committer_name  VARCHAR(255),          -- [COM]#L38 CommitterName gorm:"type:varchar(255)"
   committer_email VARCHAR(255),          -- [COM]#L39 CommitterEmail gorm:"type:varchar(255)"
+  PRIMARY KEY (sha)
+);
+
+-- U2 D15: the tool-layer table of DevLake's GitHub plugin. Only the two columns that the metric SQL reads are created. The primary key is
+-- sha alone, there is no connection column ([TGC]#L25-L40: GithubCommit has Sha gorm:"primaryKey;type:varchar(40)" and common.NoPKModel, which
+-- has CreatedAt, UpdatedAt and RawDataOrigin only). Message is a Go string with no gorm type; a real DevLake v1.0.3-beta18 has
+-- `message longtext COLLATE utf8mb4_bin` and `PRIMARY KEY (sha)` here (information_schema.columns of the database `lake`, 2026-10-21; SELECT).
+CREATE TABLE _tool_github_commits (
+  sha     VARCHAR(40) NOT NULL,            -- [TGC]#L26 Sha gorm:"primaryKey;type:varchar(40)"
+  message LONGTEXT COLLATE utf8mb4_bin,    -- [TGC]#L35 Message string (no gorm type); longtext utf8mb4_bin on a real DevLake
   PRIMARY KEY (sha)
 );

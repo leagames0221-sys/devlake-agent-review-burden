@@ -6,7 +6,7 @@
  "metrics": {
   "time_to_first_review": {
    "tool:claude": {
-    "prs": 7,
+    "prs": 10,
     "n_defined": 6,
     "mean_minutes": 58.333333,
     "median_minutes": 50
@@ -36,7 +36,7 @@
     "median_minutes": null
    },
    "tool:cursor": {
-    "prs": 10,
+    "prs": 12,
     "n_defined": 8,
     "mean_minutes": 59.375,
     "median_minutes": 45
@@ -66,7 +66,7 @@
     "median_minutes": 120
    },
    "tool:everything_else": {
-    "prs": 29,
+    "prs": 30,
     "n_defined": 17,
     "mean_minutes": 67.647059,
     "median_minutes": 60
@@ -78,7 +78,7 @@
     "median_minutes": 60
    },
    "mode:ai_assisted": {
-    "prs": 14,
+    "prs": 19,
     "n_defined": 12,
     "mean_minutes": 53.75,
     "median_minutes": 45
@@ -90,13 +90,13 @@
     "median_minutes": 120
    },
    "mode:ai_used": {
-    "prs": 26,
+    "prs": 31,
     "n_defined": 16,
     "mean_minutes": 62.8125,
     "median_minutes": 60
    },
    "mode:everything_else": {
-    "prs": 29,
+    "prs": 30,
     "n_defined": 17,
     "mean_minutes": 67.647059,
     "median_minutes": 60
@@ -397,11 +397,11 @@
   },
   "batch_size": {
    "tool:claude": {
-    "prs": 7,
-    "mean_size": 14.857143,
-    "median_size": 10,
-    "share_lt200": 1.0,
-    "share_200_499": 0.0,
+    "prs": 10,
+    "mean_size": 56.4,
+    "median_size": 12,
+    "share_lt200": 0.9,
+    "share_200_499": 0.1,
     "share_ge500": 0.0
    },
    "tool:codex": {
@@ -437,12 +437,12 @@
     "share_ge500": null
    },
    "tool:cursor": {
-    "prs": 10,
-    "mean_size": 18.2,
-    "median_size": 12,
-    "share_lt200": 1.0,
-    "share_200_499": 0.0,
-    "share_ge500": 0.0
+    "prs": 12,
+    "mean_size": 83.5,
+    "median_size": 20,
+    "share_lt200": 0.833333,
+    "share_200_499": 0.083333,
+    "share_ge500": 0.083333
    },
    "tool:devin": {
     "prs": 3,
@@ -477,12 +477,12 @@
     "share_ge500": 0.0
    },
    "tool:everything_else": {
-    "prs": 29,
-    "mean_size": 60.103448,
+    "prs": 30,
+    "mean_size": 60.1,
     "median_size": 15,
-    "share_lt200": 0.896552,
-    "share_200_499": 0.068966,
-    "share_ge500": 0.034483
+    "share_lt200": 0.9,
+    "share_200_499": 0.066667,
+    "share_ge500": 0.033333
    },
    "mode:cloud_agent": {
     "prs": 12,
@@ -493,12 +493,12 @@
     "share_ge500": 0.0
    },
    "mode:ai_assisted": {
-    "prs": 14,
-    "mean_size": 16.0,
-    "median_size": 10,
-    "share_lt200": 1.0,
-    "share_200_499": 0.0,
-    "share_ge500": 0.0
+    "prs": 19,
+    "mean_size": 79.157895,
+    "median_size": 20,
+    "share_lt200": 0.842105,
+    "share_200_499": 0.105263,
+    "share_ge500": 0.052632
    },
    "mode:review_agent": {
     "prs": 5,
@@ -509,20 +509,20 @@
     "share_ge500": 0.0
    },
    "mode:ai_used": {
-    "prs": 26,
-    "mean_size": 15.884615,
-    "median_size": 10,
-    "share_lt200": 1.0,
-    "share_200_499": 0.0,
-    "share_ge500": 0.0
+    "prs": 31,
+    "mean_size": 54.612903,
+    "median_size": 12,
+    "share_lt200": 0.903226,
+    "share_200_499": 0.064516,
+    "share_ge500": 0.032258
    },
    "mode:everything_else": {
-    "prs": 29,
-    "mean_size": 60.103448,
+    "prs": 30,
+    "mean_size": 60.1,
     "median_size": 15,
-    "share_lt200": 0.896552,
-    "share_200_499": 0.068966,
-    "share_ge500": 0.034483
+    "share_lt200": 0.9,
+    "share_200_499": 0.066667,
+    "share_ge500": 0.033333
    }
   },
   "cloud_agent_outcomes": {
@@ -1041,6 +1041,54 @@
     "ai_used": 1,
     "in_created": 1,
     "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:257": {
+    "marks": "m4:claude",
+    "tools": "claude",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:258": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:259": {
+    "marks": "m4:claude",
+    "tools": "claude",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:260": {
+    "marks": "m5:cursor",
+    "tools": "cursor",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:261": {
+    "marks": "m4:claude",
+    "tools": "claude",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:262": {
+    "marks": "m5:cursor",
+    "tools": "cursor",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
    }
   },
   "diagnostics": {
@@ -1049,6 +1097,9 @@
    },
    "check:tool_group_total_minus_pr_total": {
     "value": 2
+   },
+   "check:prs_commit_message_from_tool_table": {
+    "value": 5
    }
   }
  },
@@ -1666,6 +1717,72 @@
    "time_in_review_min": null,
    "pr_cycle_min": null,
    "size": 6,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q57": {
+   "pr_id": 257,
+   "scenario": "P-T1 (D15) commit text only in _tool_github_commits (no commits row), Co-Authored-By: Claude on the 3rd line; OPEN: m4 hits",
+   "marks": "m4:claude",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 120,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q58": {
+   "pr_id": 258,
+   "scenario": "P-T2 (D15) same sha in both tables: the domain text has no mark, the tool table text has Co-Authored-By: Claude; the domain text wins: no mark; OPEN",
+   "marks": null,
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 60,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q59": {
+   "pr_id": 259,
+   "scenario": "P-T3 (D15) domain text is the empty string, the tool table has Co-Authored-By: Claude: m4 hits (empty counts as no text); OPEN",
+   "marks": "m4:claude",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 250,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q60": {
+   "pr_id": 260,
+   "scenario": "P-T4 (D15) tool table text in the JSON-string shape, Made-with: Cursor on the 2nd line, only there: m5 hits; OPEN",
+   "marks": "m5:cursor",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 520,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q61": {
+   "pr_id": 261,
+   "scenario": "P-T5 (D15) tool table text in the JSON-string shape, only there, Co-Authored-By: Claude on the 2nd line, mixed case: m4 hits; OPEN",
+   "marks": "m4:claude",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 90,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q62": {
+   "pr_id": 262,
+   "scenario": "P-T6 (D15) tool table text with real line breaks, only there, Made-with: Cursor on the 3rd line, mixed case: m5 hits; OPEN",
+   "marks": "m5:cursor",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 300,
    "yearweek_iso": null,
    "u1_first_human_min": null
   }
