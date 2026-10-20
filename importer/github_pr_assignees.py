@@ -15,7 +15,8 @@ Token: an optional token is read from the environment in one place (read_token, 
 sent as an Authorization header that is NOT forwarded when a request is redirected. It is never printed or written.
 
 Standard library only. Exit code 0 = the .sql was written; 1 = reading from GitHub failed (no .sql is written);
-2 = a bad argument or an unusable input file (no .sql is written).
+2 = a bad argument or an unusable input file (no .sql is written). When the run stops (1 or 2), an old file at
+--out is removed, so that a .sql of an earlier run cannot be fed to the database by mistake.
 
 Usage:
   python importer/github_pr_assignees.py --repo OWNER/NAME --connection-id 1 --out assignees.sql
@@ -23,6 +24,7 @@ Usage:
       (--from-file: the pages come from a json file and nothing is sent over the network; used by the tests)
 """
 import argparse
+import http.client
 import json
 import os
 import re
@@ -35,6 +37,7 @@ from pathlib import Path
 # E2 (ADR 0003): the _raw_data_table value of the rows written by this script.
 RAW_DATA_TABLE = "_raw_github_ext_pull_request_assignees"
 API_PREFIX = "https://api.github.com/"
+# Both are used with fullmatch: "$" alone would also accept a value that ends with a newline.
 REPO_RE = re.compile(r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")
 LOGIN_RE = re.compile(r"^[A-Za-z0-9-]{1,39}$")
 MAX_PAGES = 1000  # stops a Link header that never ends (1000 pages = 100,000 pull requests)
@@ -119,8 +122,11 @@ def pages_from_github(repo, token):
         seen.add(url)
         try:
             with open_url(build_request(url, token)) as resp:
+                final_url = resp.geturl()
                 link = resp.headers.get("Link")
-                body = json.loads(resp.read().decode("utf-8"))
+                body = None
+                if str(final_url).startswith(API_PREFIX):
+                    body = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             extra = ""
             if e.headers is not None:
@@ -128,11 +134,17 @@ def pages_from_github(repo, token):
                 reset = e.headers.get("X-RateLimit-Reset")
                 if remaining is not None:
                     extra = " (X-RateLimit-Remaining: %s, X-RateLimit-Reset: %s)" % (remaining, reset)
+            hint = ""
+            if e.code in (301, 302, 307, 308):
+                hint = " The repository may have been renamed or moved: give its new name in --repo."
             raise Stop("GitHub answered HTTP %s after %d page(s) were read%s; nothing was written, and "
-                       "nothing is retried. Wait, or use a token (docs/importer.md)." % (e.code, n, extra), 1)
-        except (urllib.error.URLError, OSError, ValueError) as e:
+                       "nothing is retried. Wait, or use a token (docs/importer.md).%s" % (e.code, n, extra, hint), 1)
+        except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError, RecursionError) as e:
             raise Stop("reading page %d failed (%s) after %d page(s); nothing was written"
                        % (n + 1, type(e).__name__, n), 1)
+        if body is None:
+            raise Stop("the answer came from a URL that does not start with %s; stopped after %d page(s), "
+                       "nothing was written" % (API_PREFIX, n), 1)
         if not isinstance(body, list):
             raise Stop("page %d is not a json array; nothing was written" % (n + 1), 1)
         n += 1
@@ -147,20 +159,24 @@ def pages_from_github(repo, token):
 def pages_from_file(path):
     try:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
-    except (OSError, ValueError) as e:
+    except (OSError, ValueError, RecursionError) as e:
         raise Stop("cannot read the input file: %s" % type(e).__name__, 2)
     if not isinstance(data, list):
         raise Stop("the input file must be a json array of pages", 2)
     for i, page in enumerate(data):
         if not isinstance(page, dict) or not isinstance(page.get("body"), list):
             raise Stop("page %d of the input file has no `body` array" % (i + 1), 2)
+        page_url = page.get("url")
+        # the stand-in of the check on resp.geturl() in pages_from_github: the "url" of a page must be on the API host
+        if not isinstance(page_url, str) or not page_url.startswith(API_PREFIX):
+            raise Stop("the url of page %d of the input file does not start with %s; stopped" % (i + 1, API_PREFIX), 1)
         link = page.get("link")
         nxt = next_url(link) if isinstance(link, str) else None
         if nxt is not None and not nxt.startswith(API_PREFIX):
             raise Stop("the next page URL does not start with %s; stopped after %d page(s)" % (API_PREFIX, i + 1), 1)
         if nxt is not None and i == len(data) - 1:
             raise Stop("the last page of the input file points to a next page; stopped after %d page(s)" % (i + 1), 1)
-        yield str(page.get("url", "")), link, page["body"]
+        yield page_url, link, page["body"]
 
 
 # ---------------------------------------------------------------- reading the pull requests
@@ -187,7 +203,7 @@ def collect(pages, connection_id):
                     uid, login = a["id"], a["login"]
                     if isinstance(uid, bool) or not isinstance(uid, int):
                         raise ValueError("assignee id")
-                    if not isinstance(login, str) or not LOGIN_RE.match(login):
+                    if not isinstance(login, str) or not LOGIN_RE.fullmatch(login):
                         raise ValueError("login")
                     found.append((account_domain_id(connection_id, uid), login))
             except (KeyError, TypeError, ValueError):
@@ -230,6 +246,36 @@ def build_sql(repo, pr_ids, pairs, stats):
     return "\n".join(lines) + "\n"
 
 
+# ---------------------------------------------------------------- the output file
+def discard_old_output(out, keep=None):
+    """When the run stops, remove an old file at --out (a .sql of an earlier run must not be fed to the database
+    after a failed run). Only a plain file is removed, and never the input file given with --from-file."""
+    try:
+        p = Path(out)
+        if p.is_symlink() or not p.is_file():
+            return
+        if keep and p.resolve() == Path(keep).resolve():
+            return
+        p.unlink()
+        print("removed the old file %s (this run did not finish)" % out, file=sys.stderr)
+    except OSError:
+        pass
+
+
+def write_output(out, text):
+    """Write to a temporary file next to --out and rename it at the end, so that --out is never half written."""
+    tmp = Path(str(out) + ".tmp")
+    try:
+        tmp.write_text(text, encoding="utf-8", newline="\n")
+        os.replace(str(tmp), str(out))
+    except OSError as e:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise Stop("cannot write %s (%s); nothing was written" % (out, type(e).__name__), 2)
+
+
 # ---------------------------------------------------------------- main
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Write a .sql that puts GitHub PR assignees into DevLake's pull_request_assignees.")
@@ -243,17 +289,18 @@ def main(argv=None):
     except SystemExit as e:  # argparse exits with 2 by itself
         return e.code if isinstance(e.code, int) else 2
     try:
-        if not REPO_RE.match(a.repo) or any(part in (".", "..") for part in a.repo.split("/")):
+        if not REPO_RE.fullmatch(a.repo) or any(part in (".", "..") for part in a.repo.split("/")):
             raise Stop("--repo must look like OWNER/NAME (letters, digits, . _ -)", 2)
         if a.connection_id < 1:
             raise Stop("--connection-id must be 1 or more", 2)
         pages = pages_from_file(a.from_file) if a.from_file else pages_from_github(a.repo, read_token())
         pr_ids, pairs, stats = collect(pages, a.connection_id)
         text = build_sql(a.repo, pr_ids, pairs, stats)
+        write_output(a.out, text)
     except Stop as e:
         print("stopped: %s" % e, file=sys.stderr)
+        discard_old_output(a.out, a.from_file)
         return e.code
-    Path(a.out).write_text(text, encoding="utf-8", newline="\n")
     print("pages read: %d, pull requests read: %d, skipped because a value did not pass the checks: %d, "
           "assignee rows in the .sql: %d" % (stats["pages"], stats["prs_read"], stats["prs_skipped_invalid"], len(pairs)))
     print("written: %s" % a.out)

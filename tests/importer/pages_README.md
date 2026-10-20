@@ -30,5 +30,7 @@ Only `id` of a pull request and `id` / `login` of each assignee are read by the 
 | `pages_truncated.json` | page 1 with `rel="next"`, and no page 2 in the file | A7 (must stop) |
 | `pages_escape.json` | the page URL contains `'` and `\`; 4000031 is valid; 4000032 has a login with `'` and `\`; 4000033 has a 40-character login; 4000034 has a text `id` | A8 |
 | `pages_a13.json` | one PR (5000001), assignee alice (id 1), for the U1 query 1B on connection 1 | A13 |
+| `pages_a14_newline.json` | 4000041: assignee octocat; 4000042: the login is `hubot` followed by a newline (a trailing newline must be refused) | A14 |
+| `pages_bad_url.json` | one valid PR on a page whose `url` is on another host (the file version of the check on `resp.geturl()`) | A15 A17 (must stop) |
 
 The expected values are in `test_importer.py`, written by hand from these files (for example: `pages_basic.json` gives 3 rows, because 4000001 has none, 4000003 is not in DevLake, and hubot of 4000004 is listed twice).

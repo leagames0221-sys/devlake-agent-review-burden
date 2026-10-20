@@ -246,24 +246,28 @@ The element of `assignees` in the example response (`build/1_2_github_rest_pulls
 
 Implementation choices that the SPEC left to the implementer, and what they mean:
 
-- **A PR that fails a check is skipped as a whole.** An `id` that is not an integer (a JSON number; `true` and text are refused), an `assignees` that is not a list, an assignee whose `id` is not an integer or whose `login` does not match `^[A-Za-z0-9-]{1,39}$`:
+- **A PR that fails a check is skipped as a whole.** An `id` that is not an integer (a JSON number; `true` and text are refused), an `assignees` that is not a list, an assignee whose `id` is not an integer or whose `login` does not match `^[A-Za-z0-9-]{1,39}$` (checked with `re.fullmatch`, because `$` alone also accepts a value that ends with a newline):
   the PR is left out of both the `DELETE` list and the inserts (so its existing rows stay as they were) and is counted in `prs_skipped_invalid`, which is printed and put in the check `SELECT`.
 - **The `DELETE` lists every PR that was read**, also the ones with 0 assignees (that is how an emptied PR loses its rows).
 - **The same PR on two pages** (a page boundary can move while the pages are read) keeps the union of the assignees read, each (PR, assignee) once (the SPEC: "the same (PR, assignee id) twice: merge into one").
 - **A PR that DevLake does not have** gets no row: every `INSERT` is `INSERT ... SELECT ... FROM pull_requests pr WHERE pr.id = '<id>'`. The check `SELECT` at the end reports the number of rows now in the table (`rows_in_table`), the number the script wrote if every PR existed
   (`rows_expected_if_all_prs_in_devlake`) and the number of PRs DevLake does not have (`prs_not_in_devlake`).
 - **A key collision fails loudly.** If DevLake itself one day wrote a row with the same (pull_request_id, assignee_id), the `INSERT` stops with a duplicate-key error and the transaction (`START TRANSACTION;` ... `COMMIT;`) is not committed; nothing changes.
-- **Strings in the SQL**: a backslash is written `\\` first, then a quote `''` (MySQL reads a backslash as an escape). Values that can reach the SQL are the `login`, the repo name (checked by `^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`, `.` and `..` refused as a part) and the page URLs of the check `SELECT`;
+- **Strings in the SQL**: a backslash is written `\\` first, then a quote `''` (MySQL reads a backslash as an escape). Values that can reach the SQL are the `login`, the repo name (checked by `^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$` with `re.fullmatch`, `.` and `..` refused as a part) and the page URLs of the check `SELECT`;
   numbers are written through `int()`. A server with `NO_BACKSLASH_ESCAPES` in `sql_mode` would read `\\` as two characters; only the page URL column could be affected, because the other strings cannot contain a backslash.
 - **Network**: the token is added with `add_unredirected_header`, so a redirect does not carry it; only a next-page URL that starts with `https://api.github.com/` is followed; the first error (HTTP 403, 429, any other) stops the run with exit code 1, writes no `.sql`, prints how many pages were read and the rate-limit headers if GitHub sent them,
   and does not retry. A `Link` that returns to a URL already read, or more than 1,000 pages, also stops it.
-- **Write permission**: the user in DevLake's compose (`merico`) owns `lake` through `MYSQL_DATABASE`/`MYSQL_USER`; the command of `docs/importer.md` was run against a compose project with the same service, user and variables and wrote the rows.
+  After each answer, `resp.geturl()` must start with `https://api.github.com/` (urllib follows redirects by itself; a redirect to another host is stopped before the body is read, exit code 1);
+  a renamed repository that GitHub redirects within `api.github.com` is followed, and a 301/302/307/308 that ends as an error prints "give its new name in --repo" (`docs/importer.md`).
+  In `--from-file` the `url` field of each page plays the role of `geturl()`. `http.client.HTTPException` (for example `IncompleteRead`) and a json that is nested too deep (`RecursionError`) also stop the run (exit code 1 for GitHub, 2 for a file).
+- **No old output after a stop**: the `.sql` is written to `<out>.tmp` and renamed at the end; when the run stops (exit code 1 or 2), a plain file already at `--out` is removed (never the `--from-file` input), so that a `.sql` of an earlier run cannot be fed to the database after a failed run.
+- **Write permission**: the user in DevLake's compose (`merico`) owns `lake` through `MYSQL_DATABASE`/`MYSQL_USER`; the author ran the `.sql` on 2026-10-20 against a compose project with the same service name, user and variable names as beta18's `docker-compose-dev-mysql.yml`, and the rows were written (the record of that run is not in this repo).
 
 ## Tests
 
 `python tests/importer/test_importer.py` starts a `mysql:8.4` container (utf8mb4 / utf8mb4_bin, the options of DevLake's compose file), loads `tests/schema_mysql.sql` (U1, unchanged) and `tests/importer/schema_extra.sql`
-(the columns `_raw_data_*`, `created_at`, `updated_at`; types from `common_base.go.txt`), and runs scenes A1 to A13 on the inputs `tests/importer/pages_*.json` (described in `pages_README.md`), then removes the container.
-The expected values are written by hand from the inputs. Scenes N1 to N6 exercise the network code with a fake `open_url` (nothing is sent). U1's SQL for 1B is run on one PR before and after the import (A13): 10 minutes both times before; 10 and 60 after (the assignee's comment is first, then another person's).
+(the columns `_raw_data_*`, `created_at`, `updated_at`; types from `common_base.go.txt`), and runs scenes A1 to A17 on the inputs `tests/importer/pages_*.json` (described in `pages_README.md`), then removes the container.
+The expected values are written by hand from the inputs. Scenes N1 to N9 exercise the network code with a fake `open_url` (nothing is sent). U1's SQL for 1B is run on one PR before and after the import (A13): 10 minutes both times before; 10 and 60 after (the assignee's comment is first, then another person's).
 
 ### Mutations
 
@@ -272,13 +276,20 @@ The expected values are written by hand from the inputs. Scenes N1 to N6 exercis
 | # | Change (one at a time) | Scene it must fail | Scenes that failed | Result |
 |---|---|---|---|---|
 | 1 | DELETE without the _raw_data_table condition | A5 | A5 | caught |
-| 2 | PR id built from `number` instead of `id` | A2 | A10, A13, A2, A3, A4, A4z, A5o, A6, A7, A8, A9, N5 | caught |
+| 2 | PR id built from `number` instead of `id` | A2 | A10, A13, A14, A2, A3, A4, A4z, A5o, A6, A7, A8, A9, N5, N7 | caught |
 | 3 | backslash not escaped in SQL strings | A8 | A8 | caught |
-| 4 | E2 name does not start with _raw_github | A10 | A10, A2, A4, A4z, A5o, A6, A7, A8, A9 | caught |
+| 4 | E2 name does not start with _raw_github | A10 | A10, A14, A2, A4, A4z, A5o, A6, A7, A8, A9 | caught |
 | 5 | DELETE without the IN (...) condition | A5o | A4z, A5o | caught |
 | 6 | duplicates (same PR, same assignee) not merged | A2 | A1, A10, A11, A12, A2, A3, A6, A9 | caught |
+| 7 | login checked with `match` instead of `fullmatch` (a trailing newline passes) | A14 | A14 | caught |
+| 8 | `--repo` checked with `match` instead of `fullmatch` | A14 | A14 | caught |
+| 9 | the URL the answer came from (`resp.geturl()`) is not checked | N7 | N7 | caught |
+| 10 | the `url` of an input page is not checked | A17 | A15, A17 | caught |
+| 11 | `http.client.HTTPException` not caught | N9 | N1 to N9 (the scene stops on the uncaught exception) | caught |
+| 12 | `RecursionError` of json not caught | N9 | N1 to N9 (the scene stops on the uncaught exception) | caught |
+| 13 | an old `--out` is not removed when the run stops | A15 | A14, A15, A16, A17, A7, A8, N2, N3, N4, N7, N8, N9 | caught |
 
-Last line of the run: `6 mutants, 6 caught`. Several scenes fail in a mutant when the scene that checks the data (A2) or the stored name (E2) breaks all the later scenes that read the rows, or when a SQL error stops a scene; the table lists every scene that failed.
+Last line of the run: `13 mutants, 13 caught`. Mutants 1 to 6 are the ones of the SPEC; 7 to 13 were added with the fixes of the first review (the newline, the redirect, the errors that were not caught, the old output). Several scenes fail in a mutant when the scene that checks the data (A2) or the stored name (E2) breaks all the later scenes that read the rows, or when a SQL error stops a scene; the table lists every scene that failed.
 
 ## Differences and limits
 

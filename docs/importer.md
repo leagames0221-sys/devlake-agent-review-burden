@@ -22,21 +22,25 @@ GitHub のデータでは「反応時間」と同じ値になります。この 
 
 ## 手順(Git Bash で打ちます)
 
-1. この repo のフォルダへ移ります。
+1. この repo を置いたフォルダへ `cd` で移ります(`devlake-agent-review-burden` という名前のフォルダです)。
    ```
-   cd /c/Users/admin/Projects/devlake-agent-review-burden
+   cd この repo を置いたフォルダ
    ```
 2. `.sql` を作ります。`OWNER/NAME` は取り込んだ GitHub の repo、`1` は上で調べた接続の番号です。
    ```
    python importer/github_pr_assignees.py --repo OWNER/NAME --connection-id 1 --out out.sql
    ```
    - 公開 repo は、トークン無しでも読めます(1 時間に 60 回まで。1 回で PR を 100 件読みます)。
-   - 回数が足りない時、または非公開 repo の時は、GitHub の画面であなたが作ったトークンを、**この端末の中だけ**に設定します
-     (トークンは `.sql` にも画面にも出ません)。
+   - 回数が足りない時、または非公開 repo の時は、GitHub の画面であなたが作ったトークンを、**この端末の中だけ**に設定します。
+     次の 1 行を打つと入力待ちになるので、トークンを貼って Enter を押します(貼った文字は画面に出ず、コマンドの履歴にも残りません。
+     トークンは `.sql` にも出ません)。端末を閉じると消えます。手順 2 の `python` は、同じ端末で打ちます。
      ```
-     export GITHUB_TOKEN=あなたのトークン
+     read -rsp 'GitHub のトークン: ' GITHUB_TOKEN && echo && export GITHUB_TOKEN
      ```
    - HTTP 403 や 429 が返ったら、script は止まり、`.sql` を書きません。何頁まで読んだかが表示されます。繰り返し打たずに、しばらく待つか、トークンを使ってください。
+   - HTTP 301 や 308 が表示されたら、その repo は名前が変わったか、移っています。新しい名前で `--repo` を指定し直してください。
+   - 止まった時(終了コード 1 か 2)は、`--out` に前回の `.sql` が残っていても、script がそれを消します。前回の `.sql` を間違って流すことはありません。
+   - GitHub の答えが `https://api.github.com/` 以外の場所から来た時も、読んだ中身を使わずに止まります。
 3. DevLake の `docker-compose` のあるフォルダで、`.sql` を流します(`out.sql` は手順 2 で作ったファイルのパスにします)。
    ```
    docker compose exec -T mysql sh -c 'mysql -umerico -p"$MYSQL_PASSWORD" lake' < out.sql
@@ -49,16 +53,16 @@ GitHub のデータでは「反応時間」と同じ値になります。この 
      ```
    - 全体が 1 つの取引(`START TRANSACTION;` から `COMMIT;`)なので、途中で失敗した時は何も変わりません。
 
-### PowerShell で打つ場合
+### PowerShell で打つ場合(Git Bash が使えない時だけ)
 
-PowerShell では `<` が使えません(`out.sql` を `<` で渡す手順 3 の形は、Git Bash でだけ動きます)。PowerShell では次のように打ちます
-(`.sql` は ASCII だけなので、この形で流れます。この PC で確かめた形です)。
+この手順は Git Bash で打つ形が正です。PowerShell では `<` が使えません(`out.sql` を `<` で渡す手順 3 の形は、Git Bash でだけ動きます)。
+PowerShell 5.1 は、外部コマンドに渡す引数の `"` を落とします。次の形は、**DB のパスワードに空白や記号が無い時だけ**動きます。
 
 ```
 Get-Content -Raw out.sql | docker compose exec -T mysql sh -c 'mysql -umerico -p"$MYSQL_PASSWORD" lake'
 ```
 
-警告の文が赤く表示されますが、表が表示されていれば成功です。
+パスワードに空白や記号がある時は、Git Bash で打ってください。
 
 ## 何度流しても同じ
 

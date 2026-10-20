@@ -10,14 +10,15 @@ code of the script is exercised with a fake open_url. The expected values are wr
 (see tests/importer/pages_README.md); the script's own output is never used to compute an expectation.
 
 Usage:
-  python tests/importer/test_importer.py              run every scene (A1..A13 and the network-free checks N1..N6)
-  python tests/importer/test_importer.py --mutants    change the script in 6 places, one at a time, and show which scenes fail
+  python tests/importer/test_importer.py              run every scene (A1..A17 and the network-free checks N1..N9)
+  python tests/importer/test_importer.py --mutants    change the script in 13 places, one at a time, and show which scenes fail
 Exit code 0 = all passed (--mutants: every mutant was caught); 1 = something failed; 2 = environment problem.
 """
 import argparse
 import atexit
 import contextlib
 import email.message
+import http.client
 import importlib.util
 import io
 import json
@@ -41,6 +42,7 @@ PARAMS3 = '{"ConnectionId":3,"Name":"octo-org/demo-repo"}'   # what DevLake writ
 PARAMS9 = '{"ConnectionId":9,"Name":"other-org/other-repo"}'
 REPO = "octo-org/demo-repo"
 TOKEN = "dummy-token-for-test"
+STALE = "-- OLD FILE OF AN EARLIER RUN\n"
 
 
 def pid(n, c=3):
@@ -77,8 +79,7 @@ class Ctx:
 
     def run_import(self, pages, repo=REPO, conn=3, out_name="out.sql"):
         out = self.tmp / out_name
-        if out.exists():
-            out.unlink()
+        out.write_text(STALE, encoding="utf-8")   # an old .sql of an earlier run: a run that stops must not leave it
         r = subprocess.run([sys.executable, str(self.script), "--repo", repo, "--connection-id", str(conn),
                             "--out", str(out), "--from-file", str(HERE / pages)], capture_output=True)
         return r.returncode, r.stdout.decode("utf-8", "replace"), r.stderr.decode("utf-8", "replace"), out
@@ -252,13 +253,88 @@ def scene_u1_chain(c):
              after["median_minutes_excl_assignee"]) == ("1", "1", "10", "1", "60"), after)
 
 
+def scene_newline(c):
+    """A14: a value that ends with a newline is refused (re.match with $ would accept it; the script uses fullmatch)."""
+    c.reset()
+    c.add_prs(4000041, 4000042)
+    rc, so, se, out = import_ok(c, "A14", "pages_a14_newline.json")
+    chk = c.apply(out) if out.exists() else {}
+    got = c.ours()
+    c.check("A14", "the PR whose assignee login is 'hubot' + newline is skipped as a whole (1 counted), the PR with 'octocat' gets its row",
+            got == [(pid(4000041), aid(7001), "octocat", "octocat")] and chk.get("prs_skipped_invalid") == "1"
+            and chk.get("prs_read") == "2", (got, chk))
+    mod = c.load_module()
+    c.check("A14", "LOGIN_RE refuses a login that ends with a newline, and accepts the same login without it",
+            mod.LOGIN_RE.fullmatch("hubot\n") is None and mod.LOGIN_RE.fullmatch("hubot") is not None, "")
+    c.check("A14", "REPO_RE refuses a repo that ends with a newline, or has one inside, and accepts the plain one",
+            all(mod.REPO_RE.fullmatch(v) is None for v in ("octo-org/demo-repo\n", "octo-org\n/demo-repo", "octo-org/demo-repo\n\n"))
+            and mod.REPO_RE.fullmatch("octo-org/demo-repo") is not None, "")
+    for bad in ("octo-org/demo-repo\n", "octo-org\n/demo-repo"):
+        rc, _, se, out = c.run_import("pages_basic.json", repo=bad)
+        c.check("A14", "--repo %r is refused, exit code 2, no .sql" % bad, rc == 2 and not out.exists(), (rc, se))
+
+
+def scene_stale(c):
+    """A15: when a run stops, an old --out is removed (every run here starts with an old file at --out)."""
+    cases = [("pages_bad_host.json", REPO, 1, "next page URL"), ("pages_truncated.json", REPO, 1, "next page"),
+             ("pages_bad_url.json", REPO, 1, "does not start with"), ("pages_basic.json", "octo'org/demo", 2, "--repo"),
+             ("does_not_exist.json", REPO, 2, "input file")]
+    for pages, repo, want, word in cases:
+        rc, _, se, out = c.run_import(pages, repo=repo)
+        c.check("A15", "%s (repo %s): stops with exit code %d and the old file at --out is gone" % (pages, repo, want),
+                rc == want and not out.exists() and word in se and "removed the old file" in se, (rc, se, out.exists()))
+    rc, _, se, out = import_ok(c, "A15", "pages_basic.json")
+    c.check("A15", "a run that finishes replaces the old file, and no temporary file is left",
+            out.read_text(encoding="utf-8").startswith("START TRANSACTION;") and not Path(str(out) + ".tmp").exists(), out.read_text(encoding="utf-8")[:60])
+    same = c.tmp / "same.json"
+    same.write_text((HERE / "pages_basic.json").read_text(encoding="utf-8"), encoding="utf-8")
+    before = same.read_bytes()
+    r = subprocess.run([sys.executable, str(c.script), "--repo", "octo'org/demo", "--connection-id", "3", "--out", str(same),
+                        "--from-file", str(same)], capture_output=True)
+    c.check("A15", "when --out is the same file as --from-file, a stop does not remove the input", r.returncode == 2 and same.exists()
+            and same.read_bytes() == before, r.stderr.decode("utf-8", "replace"))
+
+
+def scene_repo_escape(c):
+    """A16: the value of --repo cannot carry a quote or a backslash into the SQL; nothing is written when it is refused."""
+    mod = c.load_module()
+    bads = ["o'/n", "o/n'", "o\\/n", "o/n\\", "a/b'; SELECT 1; --", "a/b\\'", "'/'", "a b/c", "a/b c", "o/n;"]
+    c.check("A16", "REPO_RE refuses a quote, a backslash, a space and a semicolon in the owner and in the name",
+            all(mod.REPO_RE.fullmatch(v) is None for v in bads), [v for v in bads if mod.REPO_RE.fullmatch(v)])
+    c.check("A16", "REPO_RE accepts octo-org/demo-repo, a.b/c_d and 1/2", all(mod.REPO_RE.fullmatch(v) for v in ("octo-org/demo-repo", "a.b/c_d", "1/2")), "")
+    out = c.tmp / "esc.sql"
+    for bad in bads:
+        out.write_text(STALE, encoding="utf-8")
+        buf = io.StringIO()
+        with contextlib.redirect_stderr(buf), contextlib.redirect_stdout(io.StringIO()):
+            rc = mod.main(["--repo", bad, "--connection-id", "3", "--out", str(out), "--from-file", str(HERE / "pages_basic.json")])
+        c.check("A16", "main() with --repo %r: exit code 2, and no .sql (the old file is removed)" % bad, rc == 2 and not out.exists(), (rc, buf.getvalue()))
+    for bad in ("o'/n", "o/n'", "o\\/n", "o/n\\"):
+        rc, _, se, out2 = c.run_import("pages_basic.json", repo=bad)
+        c.check("A16", "the script as a program with --repo %r: exit code 2, no .sql" % bad, rc == 2 and not out2.exists(), (rc, se))
+
+
+def scene_bad_url_file(c):
+    """A17: a page whose url is not on the API host stops the run (the file version of the check on resp.geturl())."""
+    rc, _, se, out = c.run_import("pages_bad_url.json")
+    c.check("A17", "an input page with another host in `url`: exit code 1, no .sql, the message names https://api.github.com/",
+            rc == 1 and not out.exists() and "https://api.github.com/" in se, (rc, se))
+
+
 # ------------------------------------------------------------------ network-free checks of the script's own network code
 class FakeResp:
-    def __init__(self, body, link=None):
+    def __init__(self, body=None, link=None, url=None, raw=None, read_error=None):
         self.headers = {"Link": link} if link else {}
-        self._body = json.dumps(body).encode("utf-8")
+        self._body = raw if raw is not None else json.dumps(body).encode("utf-8")
+        self._url = url          # None = the URL that was asked for (set by run_main)
+        self._read_error = read_error
+
+    def geturl(self):
+        return self._url
 
     def read(self):
+        if self._read_error is not None:
+            raise self._read_error
         return self._body
 
     def __enter__(self):
@@ -278,8 +354,7 @@ def http_error(url, code):
 def run_main(mod, tmp, answers):
     """Run mod.main() against fake answers (a list of FakeResp or an Exception to raise); return (rc, text, requests, out)."""
     out = Path(tmp) / "net.sql"
-    if out.exists():
-        out.unlink()
+    out.write_text(STALE, encoding="utf-8")   # a run that stops must remove it
     seen = []
 
     def fake_open(req):
@@ -287,6 +362,8 @@ def run_main(mod, tmp, answers):
         a = answers[len(seen) - 1]
         if isinstance(a, Exception):
             raise a
+        if a._url is None:
+            a._url = req.full_url
         return a
 
     mod.open_url, mod.read_token = fake_open, (lambda: TOKEN)
@@ -328,6 +405,36 @@ def scene_network_free(c):
             (rc, text, [s.full_url for s in seen]))
     c.check("N6", "the token is in neither the printed text nor the .sql, and was sent as an unredirected header on both requests",
             TOKEN not in text and TOKEN not in sql and all(s.unredirected_hdrs.get("Authorization") == "Bearer " + TOKEN for s in seen), text)
+    one = [{"id": 4000061, "number": 61, "assignees": [{"login": "octocat", "id": 7001}]}]
+    for foreign in ("https://evil.example/repositories/9/pulls", "http://api.github.com/repos/o/r/pulls",
+                    "https://api.github.com.evil.example/repos/o/r/pulls", ""):
+        rc, text, seen, out = run_main(mod, c.tmp, [FakeResp(one, url=foreign)])
+        c.check("N7", "an answer that came from %r (after a redirect) stops the run: exit code 1, no .sql, the body is not used" % foreign,
+                rc == 1 and not out.exists() and "does not start with https://api.github.com/" in text and TOKEN not in text, (rc, text))
+    renamed = "https://api.github.com/repositories/9/pulls?state=all&per_page=100"
+    rc, text, seen, out = run_main(mod, c.tmp, [FakeResp(one, url=renamed)])
+    c.check("N7", "an answer from another path on api.github.com (a renamed repo, redirected by urllib) is accepted",
+            rc == 0 and out.exists() and pid(4000061) in out.read_text(encoding="utf-8"), (rc, text))
+    for code in (301, 308):
+        rc, text, seen, out = run_main(mod, c.tmp, [http_error(first, code)])
+        c.check("N8", "HTTP %d: exit code 1, no .sql, and the message says to give the new name in --repo" % code,
+                rc == 1 and not out.exists() and "HTTP %d" % code in text and "new name in --repo" in text, (rc, text))
+    nested = b"[" * 200000
+    for label, answer in (("IncompleteRead", FakeResp(one, read_error=http.client.IncompleteRead(b"x"))),
+                          ("RemoteDisconnected", FakeResp(one, read_error=http.client.RemoteDisconnected("gone"))),
+                          ("BadStatusLine", http.client.BadStatusLine("x")),
+                          ("a json nested 200000 deep (RecursionError)", FakeResp(raw=nested))):
+        rc, text, seen, out = run_main(mod, c.tmp, [answer])
+        c.check("N9", "%s while reading a page: exit code 1, no .sql, a message (no traceback)" % label,
+                rc == 1 and not out.exists() and "stopped: reading page 1 failed" in text and "Traceback" not in text, (rc, text))
+    deep = c.tmp / "deep.json"
+    deep.write_bytes(nested)
+    out = c.tmp / "deep.sql"
+    out.write_text(STALE, encoding="utf-8")
+    buf = io.StringIO()
+    with contextlib.redirect_stderr(buf), contextlib.redirect_stdout(io.StringIO()):
+        rc = mod.main(["--repo", REPO, "--connection-id", "3", "--out", str(out), "--from-file", str(deep)])
+    c.check("N9", "an input file nested 200000 deep: exit code 2, no .sql", rc == 2 and not out.exists() and "cannot read the input file" in buf.getvalue(), (rc, buf.getvalue()))
 
 
 SCENES = [
@@ -335,8 +442,12 @@ SCENES = [
     (["A4", "A4z", "A5", "A5o"], scene_rerun),
     (["A7"], scene_pages),
     (["A8"], scene_escape),
+    (["A14"], scene_newline),
+    (["A15"], scene_stale),
+    (["A16"], scene_repo_escape),
+    (["A17"], scene_bad_url_file),
     (["A13"], scene_u1_chain),
-    (["N1", "N2", "N3", "N4", "N5", "N6"], scene_network_free),
+    (["N1", "N2", "N3", "N4", "N5", "N6", "N7", "N8", "N9"], scene_network_free),
 ]
 
 
@@ -367,6 +478,20 @@ MUTANTS = [
      SRC_DELETE, '    delete_where = "_raw_data_table = %s" % (table,)\n'),
     ("duplicates (same PR, same assignee) not merged", "A2",
      '                if (pid, aid) in done:\n', '                if False:\n'),
+    ("login checked with match (a trailing newline passes)", "A14",
+     'not LOGIN_RE.fullmatch(login)', 'not LOGIN_RE.match(login)'),
+    ("--repo checked with match (a trailing newline passes)", "A14",
+     'if not REPO_RE.fullmatch(a.repo) or', 'if not REPO_RE.match(a.repo) or'),
+    ("the URL the answer came from is not checked", "N7",
+     '                if str(final_url).startswith(API_PREFIX):\n', '                if True:\n'),
+    ("the url of an input page is not checked", "A17",
+     'if not isinstance(page_url, str) or not page_url.startswith(API_PREFIX):', 'if False:'),
+    ("http.client.HTTPException not caught", "N9",
+     'urllib.error.URLError, http.client.HTTPException, OSError', 'urllib.error.URLError, OSError'),
+    ("RecursionError of json not caught", "N9",
+     'http.client.HTTPException, OSError, ValueError, RecursionError)', 'http.client.HTTPException, OSError, ValueError)'),
+    ("an old --out is not removed when the run stops", "A15",
+     '        discard_old_output(a.out, a.from_file)\n', '        pass\n'),
 ]
 
 
