@@ -261,7 +261,7 @@ Implementation choices that the SPEC left to the implementer, and what they mean
   a renamed repository that GitHub redirects within `api.github.com` is followed, and a 301/302/307/308 that ends as an error prints "give its new name in --repo" (`docs/importer.md`).
   In `--from-file` the `url` field of each page plays the role of `geturl()`. `http.client.HTTPException` (for example `IncompleteRead`) and a json that is nested too deep (`RecursionError`) also stop the run (exit code 1 for GitHub, 2 for a file).
 - **No old output after a stop**: the `.sql` is written to `<out>.tmp` and renamed at the end; when the run stops (exit code 1 or 2), a plain file already at `--out` is removed (never the `--from-file` input), so that a `.sql` of an earlier run cannot be fed to the database after a failed run.
-- **Write permission**: the user in DevLake's compose (`merico`) owns `lake` through `MYSQL_DATABASE`/`MYSQL_USER`; the author ran the `.sql` on 2026-10-20 against a compose project with the same service name, user and variable names as beta18's `docker-compose-dev-mysql.yml`, and the rows were written (the record of that run is not in this repo).
+- **Write permission**: the user in DevLake's compose (`merico`) owns `lake` through `MYSQL_DATABASE`/`MYSQL_USER`. Writing the rows into a real DevLake database is checked in U4 (see "To check in U4").
 
 ## Tests
 
