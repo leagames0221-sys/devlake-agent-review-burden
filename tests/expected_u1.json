@@ -1,0 +1,206 @@
+{
+ "_comment": "Expected values fixed by the designer (SPEC U1 section 5), computed by hand. cursor has no PR: rows are returned with pr_count 0 and NULL (null) medians. reacted_excl_assignee is the count that goes with the designer's metric-1B medians.",
+ "period": "2026-03-01..2026-03-31",
+ "repo": "github:GithubRepo:1:1",
+ "metrics": {
+  "m1_first_human_reaction": {
+   "copilot": {
+    "pr_count": 2,
+    "reacted": 1,
+    "median_minutes": 30,
+    "reacted_excl_assignee": 1,
+    "median_minutes_excl_assignee": 120
+   },
+   "devin": {
+    "pr_count": 1,
+    "reacted": 1,
+    "median_minutes": 60,
+    "reacted_excl_assignee": 1,
+    "median_minutes_excl_assignee": 180
+   },
+   "codex": {
+    "pr_count": 1,
+    "reacted": 1,
+    "median_minutes": 120,
+    "reacted_excl_assignee": 1,
+    "median_minutes_excl_assignee": 120
+   },
+   "claude": {
+    "pr_count": 2,
+    "reacted": 2,
+    "median_minutes": 20,
+    "reacted_excl_assignee": 2,
+    "median_minutes_excl_assignee": 20
+   },
+   "cursor": {
+    "pr_count": 0,
+    "reacted": 0,
+    "median_minutes": null,
+    "reacted_excl_assignee": 0,
+    "median_minutes_excl_assignee": null
+   },
+   "other_bot": {
+    "pr_count": 1,
+    "reacted": 0,
+    "median_minutes": null,
+    "reacted_excl_assignee": 0,
+    "median_minutes_excl_assignee": null
+   },
+   "no_marker": {
+    "pr_count": 4,
+    "reacted": 3,
+    "median_minutes": 60,
+    "reacted_excl_assignee": 3,
+    "median_minutes_excl_assignee": 60
+   }
+  },
+  "m2_review_burden": {
+   "copilot": {
+    "pr_count": 2,
+    "median_comments": 1,
+    "median_comments_excl_bots": 0
+   },
+   "devin": {
+    "pr_count": 1,
+    "median_comments": 2,
+    "median_comments_excl_bots": 2
+   },
+   "codex": {
+    "pr_count": 1,
+    "median_comments": 3,
+    "median_comments_excl_bots": 3
+   },
+   "claude": {
+    "pr_count": 2,
+    "median_comments": 1,
+    "median_comments_excl_bots": 1
+   },
+   "cursor": {
+    "pr_count": 0,
+    "median_comments": null,
+    "median_comments_excl_bots": null
+   },
+   "other_bot": {
+    "pr_count": 1,
+    "median_comments": 0,
+    "median_comments_excl_bots": 0
+   },
+   "no_marker": {
+    "pr_count": 4,
+    "median_comments": 2,
+    "median_comments_excl_bots": 2
+   }
+  },
+  "m3_changes_requested": {
+   "copilot": {
+    "pr_count": 2,
+    "changes_requested_prs": 1,
+    "changes_requested_ratio": 0.5
+   },
+   "devin": {
+    "pr_count": 1,
+    "changes_requested_prs": 0,
+    "changes_requested_ratio": 0
+   },
+   "codex": {
+    "pr_count": 1,
+    "changes_requested_prs": 1,
+    "changes_requested_ratio": 1
+   },
+   "claude": {
+    "pr_count": 2,
+    "changes_requested_prs": 0,
+    "changes_requested_ratio": 0
+   },
+   "cursor": {
+    "pr_count": 0,
+    "changes_requested_prs": 0,
+    "changes_requested_ratio": null
+   },
+   "other_bot": {
+    "pr_count": 1,
+    "changes_requested_prs": 0,
+    "changes_requested_ratio": 0
+   },
+   "no_marker": {
+    "pr_count": 4,
+    "changes_requested_prs": 1,
+    "changes_requested_ratio": 0.25
+   }
+  },
+  "m4_pr_size": {
+   "copilot": {
+    "pr_count": 2,
+    "median_size": 40
+   },
+   "devin": {
+    "pr_count": 1,
+    "median_size": 10
+   },
+   "codex": {
+    "pr_count": 1,
+    "median_size": 100
+   },
+   "claude": {
+    "pr_count": 2,
+    "median_size": 10
+   },
+   "cursor": {
+    "pr_count": 0,
+    "median_size": null
+   },
+   "other_bot": {
+    "pr_count": 1,
+    "median_size": 4
+   },
+   "no_marker": {
+    "pr_count": 4,
+    "median_size": 4
+   }
+  },
+  "m5_outcome": {
+   "copilot": {
+    "pr_count": 2,
+    "merged": 1,
+    "closed": 1,
+    "open": 0
+   },
+   "devin": {
+    "pr_count": 1,
+    "merged": 1,
+    "closed": 0,
+    "open": 0
+   },
+   "codex": {
+    "pr_count": 1,
+    "merged": 0,
+    "closed": 0,
+    "open": 1
+   },
+   "claude": {
+    "pr_count": 2,
+    "merged": 2,
+    "closed": 0,
+    "open": 0
+   },
+   "cursor": {
+    "pr_count": 0,
+    "merged": 0,
+    "closed": 0,
+    "open": 0
+   },
+   "other_bot": {
+    "pr_count": 1,
+    "merged": 1,
+    "closed": 0,
+    "open": 0
+   },
+   "no_marker": {
+    "pr_count": 4,
+    "merged": 2,
+    "closed": 1,
+    "open": 1
+   }
+  }
+ }
+}
