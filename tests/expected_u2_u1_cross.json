@@ -1,0 +1,44 @@
+{
+ "_comment": "U1's metric 1 (first human reaction, any comment type) run on fixture_u2.sql, computed by hand: P-R2 (Q20) is 30 minutes here (the NORMAL comment) while time_to_first_review is 90 (the REVIEW row). Only the fields listed are compared. coderabbitai[bot] has is_bot = 0, so U1 counts its comments as human (Q19, Q23).",
+ "period": "2026-03-01..2026-03-31",
+ "repo": "github:GithubRepo:1:1",
+ "metrics": {
+  "m1_first_human_reaction": {
+   "copilot": {
+    "pr_count": 2,
+    "reacted": 1,
+    "median_minutes": 60
+   },
+   "devin": {
+    "pr_count": 3,
+    "reacted": 1,
+    "median_minutes": 120
+   },
+   "codex": {
+    "pr_count": 1,
+    "reacted": 1,
+    "median_minutes": 30
+   },
+   "claude": {
+    "pr_count": 1,
+    "reacted": 1,
+    "median_minutes": 20
+   },
+   "cursor": {
+    "pr_count": 0,
+    "reacted": 0,
+    "median_minutes": null
+   },
+   "other_bot": {
+    "pr_count": 2,
+    "reacted": 1,
+    "median_minutes": 120
+   },
+   "no_marker": {
+    "pr_count": 35,
+    "reacted": 24,
+    "median_minutes": 60
+   }
+  }
+ }
+}

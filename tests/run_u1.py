@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Run the U1 metric SQL against a throw-away MySQL 8 container and compare with expected_u1.json.
+"""Run a metric SQL file against a throw-away MySQL 8 container and compare with an expected json.
+(U1 defaults: sql/mysql/agent_review_burden.sql, tests/fixture_u1.sql, tests/expected_u1.json.
+U2 passes its own files with --sql / --fixture / --expected / --var, see docs/adr/0002.)
 
 Steps: start a fresh container (public image from Docker Hub, started with the same character set
 and collation as DevLake's own compose file: utf8mb4 / utf8mb4_bin) -> load schema_mysql.sql and
@@ -10,7 +12,13 @@ container (also when something fails).
 Standard library and the docker CLI only. No network access other than pulling the MySQL image
 the first time. Nothing contacts GitHub.
 
-Usage: python tests/run_u1.py [--sql PATH] [--image mysql:8.4]
+Usage: python tests/run_u1.py [--sql PATH] [--fixture PATH] [--expected PATH] [--var NAME=VALUE ...] [--image mysql:8.4]
+
+The first column of every "-- @metric" result is the row key. It must be unique inside one metric
+(a repeated key stops the test). U1 uses the agent name as the key; U2 uses composite keys such as
+tool:<name>, mode:<name>, week:<YEARWEEK>, pr:<PR id>, check:<name>. Values are compared as numbers
+(tolerance 1e-4) when the expected value is a json number, as exact text when it is a json string,
+and as NULL when it is json null.
 Exit code 0 = every expected value matched; 1 = a mismatch; 2 = an environment problem.
 """
 import argparse
@@ -24,15 +32,23 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PASSWORD = "u1test"
+PASSWORD = uuid.uuid4().hex  # root password of the throw-away container; new for every run, never stored
 DB = "lake"
 
 # Fixed values for the Grafana macros (period 2026-03-01 .. 2026-03-31, one repo).
-MACROS = [
-    ("$__timeFilter(pr.created_date)",
-     "pr.created_date BETWEEN '2026-03-01 00:00:00' AND '2026-03-31 23:59:59'"),
-    ("${repo_id}", "'github:GithubRepo:1:1'"),
-]
+# U2 adds the merged_date filter and the dashboard variable include_own_markers (0 or 1, default 0).
+VARIABLES = {"include_own_markers": "0"}
+
+
+def macros(variables):
+    return [
+        ("$__timeFilter(pr.created_date)",
+         "pr.created_date BETWEEN '2026-03-01 00:00:00' AND '2026-03-31 23:59:59'"),
+        ("$__timeFilter(pr.merged_date)",
+         "pr.merged_date BETWEEN '2026-03-01 00:00:00' AND '2026-03-31 23:59:59'"),
+        ("${repo_id}", "'github:GithubRepo:1:1'"),
+        ("${include_own_markers}", variables["include_own_markers"]),
+    ]
 
 
 def docker(*args, input_bytes=None, check=True, timeout=600):
@@ -79,8 +95,8 @@ def split_sql(path):
     return common, sections
 
 
-def apply_macros(text):
-    for k, v in MACROS:
+def apply_macros(text, variables):
+    for k, v in macros(variables):
         text = text.replace(k, v)
     if "$__" in text or "${" in text:
         raise RuntimeError("a Grafana macro was not replaced")
@@ -90,17 +106,35 @@ def apply_macros(text):
 def same(expected, got):
     if expected is None or got is None:
         return expected is None and got is None
+    if isinstance(expected, str):  # text value: exact match
+        return expected == got
     # 1e-4: MySQL AVG() returns 4 decimals (2/3 -> 0.6667).
-    return abs(float(expected) - float(got)) < 1e-4
+    try:
+        return abs(float(expected) - float(got)) < 1e-4
+    except ValueError:
+        return False
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sql", default=str(ROOT / "sql" / "mysql" / "agent_review_burden.sql"))
+    ap.add_argument("--fixture", default=str(ROOT / "tests" / "fixture_u1.sql"))
+    ap.add_argument("--expected", default=str(ROOT / "tests" / "expected_u1.json"))
+    ap.add_argument("--var", action="append", default=[], metavar="NAME=VALUE",
+                    help="dashboard variable, for example include_own_markers=1")
     ap.add_argument("--image", default="mysql:8.4")
     a = ap.parse_args()
 
-    expected = json.loads((ROOT / "tests" / "expected_u1.json").read_text(encoding="utf-8"))["metrics"]
+    variables = dict(VARIABLES)
+    for item in a.var:
+        k, _, v = item.partition("=")
+        if k not in VARIABLES or v not in ("0", "1"):
+            print("unknown variable or value (only include_own_markers=0|1): %s" % item, file=sys.stderr)
+            return 2
+        variables[k] = v
+    print("variables: " + ", ".join("%s=%s" % kv for kv in sorted(variables.items())))
+
+    expected = json.loads(Path(a.expected).read_text(encoding="utf-8"))["metrics"]
     common, metrics = split_sql(Path(a.sql))
 
     name = "u1-arb-test-" + uuid.uuid4().hex[:8]
@@ -137,7 +171,7 @@ def main():
         print("mysql %s ready in container %s" % (ver, name))
 
         mysql(name, (ROOT / "tests" / "schema_mysql.sql").read_text(encoding="utf-8"))
-        mysql(name, (ROOT / "tests" / "fixture_u1.sql").read_text(encoding="utf-8"))
+        mysql(name, Path(a.fixture).read_text(encoding="utf-8"))
         coll = mysql(name, "SELECT @@character_set_server AS character_set_server, @@collation_server AS collation_server, "
                            "@@collation_database AS collation_database, "
                            "(SELECT table_collation FROM information_schema.tables WHERE table_schema = 'lake' "
@@ -154,8 +188,12 @@ def main():
             if metric not in metrics:
                 bad.append("metric %s is missing in the SQL file" % metric)
                 continue
-            header, rows = mysql(name, apply_macros(common) + "\n" + apply_macros(metrics[metric]))
-            got = {r[0]: dict(zip(header[1:], r[1:])) for r in rows}
+            header, rows = mysql(name, apply_macros(common, variables) + "\n" + apply_macros(metrics[metric], variables))
+            got = {}
+            for r in rows:
+                if r[0] in got:  # never overwrite silently
+                    bad.append("DUPLICATE KEY in %s: %s" % (metric, r[0]))
+                got[r[0]] = dict(zip(header[1:], r[1:]))
             print("-- %s" % metric)
             print("   " + "\t".join(header))
             for r in rows:

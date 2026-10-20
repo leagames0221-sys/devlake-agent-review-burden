@@ -1,0 +1,1357 @@
+{
+ "_comment": "Expected values of the U2 test, computed by hand from fixture_u2.sql: the per-PR values (_per_pr) were worked out by hand from the fixture rows; the group values below are the mean / median / counts of those per-PR values (median = DevLake's method: the largest value with percent_rank <= 0.5, the lower middle value for an even count). Nothing was copied from the SQL output. include_own_markers = 1.",
+ "period": "2026-03-01..2026-03-31",
+ "repo": "github:GithubRepo:1:1",
+ "include_own_markers": 1,
+ "metrics": {
+  "time_to_first_review": {
+   "tool:claude": {
+    "prs": 6,
+    "n_defined": 6,
+    "mean_minutes": 53.333333,
+    "median_minutes": 30
+   },
+   "tool:codex": {
+    "prs": 1,
+    "n_defined": 1,
+    "mean_minutes": 30.0,
+    "median_minutes": 30
+   },
+   "tool:coderabbit": {
+    "prs": 3,
+    "n_defined": 1,
+    "mean_minutes": 60.0,
+    "median_minutes": 60
+   },
+   "tool:copilot": {
+    "prs": 2,
+    "n_defined": 1,
+    "mean_minutes": 60.0,
+    "median_minutes": 60
+   },
+   "tool:cubic": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:cursor": {
+    "prs": 6,
+    "n_defined": 6,
+    "mean_minutes": 67.5,
+    "median_minutes": 60
+   },
+   "tool:devin": {
+    "prs": 3,
+    "n_defined": 1,
+    "mean_minutes": 120.0,
+    "median_minutes": 120
+   },
+   "tool:graphite": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:macroscope": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:qodo": {
+    "prs": 1,
+    "n_defined": 1,
+    "mean_minutes": 120.0,
+    "median_minutes": 120
+   },
+   "tool:everything_else": {
+    "prs": 24,
+    "n_defined": 12,
+    "mean_minutes": 77.916667,
+    "median_minutes": 60
+   },
+   "mode:cloud_agent": {
+    "prs": 10,
+    "n_defined": 7,
+    "mean_minutes": 68.571429,
+    "median_minutes": 60
+   },
+   "mode:ai_assisted": {
+    "prs": 15,
+    "n_defined": 13,
+    "mean_minutes": 58.076923,
+    "median_minutes": 60
+   },
+   "mode:review_agent": {
+    "prs": 3,
+    "n_defined": 1,
+    "mean_minutes": 120.0,
+    "median_minutes": 120
+   },
+   "mode:ai_used": {
+    "prs": 20,
+    "n_defined": 15,
+    "mean_minutes": 62.333333,
+    "median_minutes": 60
+   },
+   "mode:everything_else": {
+    "prs": 24,
+    "n_defined": 12,
+    "mean_minutes": 77.916667,
+    "median_minutes": 60
+   }
+  },
+  "time_in_review": {
+   "tool:claude": {
+    "n": 6,
+    "mean_minutes": 118.333333,
+    "median_minutes": 60
+   },
+   "tool:codex": {
+    "n": 1,
+    "mean_minutes": 30.0,
+    "median_minutes": 30
+   },
+   "tool:coderabbit": {
+    "n": 1,
+    "mean_minutes": 60.0,
+    "median_minutes": 60
+   },
+   "tool:copilot": {
+    "n": 1,
+    "mean_minutes": 60.0,
+    "median_minutes": 60
+   },
+   "tool:cubic": {
+    "n": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:cursor": {
+    "n": 6,
+    "mean_minutes": 97.5,
+    "median_minutes": 60
+   },
+   "tool:devin": {
+    "n": 1,
+    "mean_minutes": 120.0,
+    "median_minutes": 120
+   },
+   "tool:graphite": {
+    "n": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:macroscope": {
+    "n": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:qodo": {
+    "n": 1,
+    "mean_minutes": 120.0,
+    "median_minutes": 120
+   },
+   "tool:everything_else": {
+    "n": 20,
+    "mean_minutes": 365.0,
+    "median_minutes": 120
+   },
+   "mode:cloud_agent": {
+    "n": 7,
+    "mean_minutes": 132.857143,
+    "median_minutes": 120
+   },
+   "mode:ai_assisted": {
+    "n": 13,
+    "mean_minutes": 101.923077,
+    "median_minutes": 60
+   },
+   "mode:review_agent": {
+    "n": 1,
+    "mean_minutes": 120.0,
+    "median_minutes": 120
+   },
+   "mode:ai_used": {
+    "n": 15,
+    "mean_minutes": 100.333333,
+    "median_minutes": 60
+   },
+   "mode:everything_else": {
+    "n": 20,
+    "mean_minutes": 365.0,
+    "median_minutes": 120
+   }
+  },
+  "pr_cycle_time": {
+   "tool:claude": {
+    "n": 6,
+    "mean_minutes": 210.0,
+    "median_minutes": 180
+   },
+   "tool:codex": {
+    "n": 1,
+    "mean_minutes": 360.0,
+    "median_minutes": 360
+   },
+   "tool:coderabbit": {
+    "n": 1,
+    "mean_minutes": 360.0,
+    "median_minutes": 360
+   },
+   "tool:copilot": {
+    "n": 1,
+    "mean_minutes": 360.0,
+    "median_minutes": 360
+   },
+   "tool:cubic": {
+    "n": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:cursor": {
+    "n": 6,
+    "mean_minutes": 340.0,
+    "median_minutes": 240
+   },
+   "tool:devin": {
+    "n": 1,
+    "mean_minutes": 360.0,
+    "median_minutes": 360
+   },
+   "tool:graphite": {
+    "n": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:macroscope": {
+    "n": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:qodo": {
+    "n": 1,
+    "mean_minutes": 360.0,
+    "median_minutes": 360
+   },
+   "tool:everything_else": {
+    "n": 20,
+    "mean_minutes": 640.0,
+    "median_minutes": 240
+   },
+   "mode:cloud_agent": {
+    "n": 7,
+    "mean_minutes": 402.857143,
+    "median_minutes": 360
+   },
+   "mode:ai_assisted": {
+    "n": 13,
+    "mean_minutes": 290.769231,
+    "median_minutes": 240
+   },
+   "mode:review_agent": {
+    "n": 1,
+    "mean_minutes": 360.0,
+    "median_minutes": 360
+   },
+   "mode:ai_used": {
+    "n": 15,
+    "mean_minutes": 300.0,
+    "median_minutes": 300
+   },
+   "mode:everything_else": {
+    "n": 20,
+    "mean_minutes": 640.0,
+    "median_minutes": 240
+   }
+  },
+  "throughput": {
+   "tool:claude": {
+    "merged": 6
+   },
+   "tool:codex": {
+    "merged": 1
+   },
+   "tool:coderabbit": {
+    "merged": 1
+   },
+   "tool:copilot": {
+    "merged": 1
+   },
+   "tool:cubic": {
+    "merged": 0
+   },
+   "tool:cursor": {
+    "merged": 6
+   },
+   "tool:devin": {
+    "merged": 1
+   },
+   "tool:graphite": {
+    "merged": 0
+   },
+   "tool:macroscope": {
+    "merged": 0
+   },
+   "tool:qodo": {
+    "merged": 1
+   },
+   "tool:everything_else": {
+    "merged": 20
+   },
+   "mode:cloud_agent": {
+    "merged": 7
+   },
+   "mode:ai_assisted": {
+    "merged": 13
+   },
+   "mode:review_agent": {
+    "merged": 1
+   },
+   "mode:ai_used": {
+    "merged": 15
+   },
+   "mode:everything_else": {
+    "merged": 20
+   },
+   "week:202610": {
+    "merged": 6,
+    "merged_cloud_agent": 3,
+    "merged_ai_assisted": 3,
+    "merged_review_agent": 0,
+    "merged_ai_used": 4,
+    "merged_everything_else": 2
+   },
+   "week:202611": {
+    "merged": 9,
+    "merged_cloud_agent": 2,
+    "merged_ai_assisted": 6,
+    "merged_review_agent": 0,
+    "merged_ai_used": 7,
+    "merged_everything_else": 2
+   },
+   "week:202612": {
+    "merged": 8,
+    "merged_cloud_agent": 1,
+    "merged_ai_assisted": 1,
+    "merged_review_agent": 1,
+    "merged_ai_used": 1,
+    "merged_everything_else": 7
+   },
+   "week:202613": {
+    "merged": 12,
+    "merged_cloud_agent": 1,
+    "merged_ai_assisted": 3,
+    "merged_review_agent": 0,
+    "merged_ai_used": 3,
+    "merged_everything_else": 9
+   }
+  },
+  "batch_size": {
+   "tool:claude": {
+    "prs": 6,
+    "mean_size": 18.666667,
+    "median_size": 12,
+    "share_lt200": 1.0,
+    "share_200_499": 0.0,
+    "share_ge500": 0.0
+   },
+   "tool:codex": {
+    "prs": 1,
+    "mean_size": 60.0,
+    "median_size": 60,
+    "share_lt200": 1.0,
+    "share_200_499": 0.0,
+    "share_ge500": 0.0
+   },
+   "tool:coderabbit": {
+    "prs": 3,
+    "mean_size": 10.0,
+    "median_size": 10,
+    "share_lt200": 1.0,
+    "share_200_499": 0.0,
+    "share_ge500": 0.0
+   },
+   "tool:copilot": {
+    "prs": 2,
+    "mean_size": 25.0,
+    "median_size": 10,
+    "share_lt200": 1.0,
+    "share_200_499": 0.0,
+    "share_ge500": 0.0
+   },
+   "tool:cubic": {
+    "prs": 0,
+    "mean_size": null,
+    "median_size": null,
+    "share_lt200": null,
+    "share_200_499": null,
+    "share_ge500": null
+   },
+   "tool:cursor": {
+    "prs": 6,
+    "mean_size": 25.0,
+    "median_size": 20,
+    "share_lt200": 1.0,
+    "share_200_499": 0.0,
+    "share_ge500": 0.0
+   },
+   "tool:devin": {
+    "prs": 3,
+    "mean_size": 18.333333,
+    "median_size": 15,
+    "share_lt200": 1.0,
+    "share_200_499": 0.0,
+    "share_ge500": 0.0
+   },
+   "tool:graphite": {
+    "prs": 0,
+    "mean_size": null,
+    "median_size": null,
+    "share_lt200": null,
+    "share_200_499": null,
+    "share_ge500": null
+   },
+   "tool:macroscope": {
+    "prs": 0,
+    "mean_size": null,
+    "median_size": null,
+    "share_lt200": null,
+    "share_200_499": null,
+    "share_ge500": null
+   },
+   "tool:qodo": {
+    "prs": 1,
+    "mean_size": 30.0,
+    "median_size": 30,
+    "share_lt200": 1.0,
+    "share_200_499": 0.0,
+    "share_ge500": 0.0
+   },
+   "tool:everything_else": {
+    "prs": 24,
+    "mean_size": 68.333333,
+    "median_size": 15,
+    "share_lt200": 0.875,
+    "share_200_499": 0.083333,
+    "share_ge500": 0.041667
+   },
+   "mode:cloud_agent": {
+    "prs": 10,
+    "mean_size": 25.7,
+    "median_size": 30,
+    "share_lt200": 1.0,
+    "share_200_499": 0.0,
+    "share_ge500": 0.0
+   },
+   "mode:ai_assisted": {
+    "prs": 15,
+    "mean_size": 24.466667,
+    "median_size": 20,
+    "share_lt200": 1.0,
+    "share_200_499": 0.0,
+    "share_ge500": 0.0
+   },
+   "mode:review_agent": {
+    "prs": 3,
+    "mean_size": 16.0,
+    "median_size": 10,
+    "share_lt200": 1.0,
+    "share_200_499": 0.0,
+    "share_ge500": 0.0
+   },
+   "mode:ai_used": {
+    "prs": 20,
+    "mean_size": 21.85,
+    "median_size": 15,
+    "share_lt200": 1.0,
+    "share_200_499": 0.0,
+    "share_ge500": 0.0
+   },
+   "mode:everything_else": {
+    "prs": 24,
+    "mean_size": 68.333333,
+    "median_size": 15,
+    "share_lt200": 0.875,
+    "share_200_499": 0.083333,
+    "share_ge500": 0.041667
+   }
+  },
+  "cloud_agent_outcomes": {
+   "mode:cloud_agent": {
+    "prs": 10,
+    "merged": 7,
+    "closed": 2,
+    "open": 1
+   }
+  },
+  "pr_classification": {
+   "pr:github:GithubPullRequest:1:201": {
+    "marks": "m1:cursor",
+    "tools": "cursor",
+    "modes": "cloud_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:202": {
+    "marks": "m2:cursor,m3:cursor",
+    "tools": "cursor",
+    "modes": "ai_assisted,cloud_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:203": {
+    "marks": "m2:cursor,m3:cursor",
+    "tools": "cursor",
+    "modes": "ai_assisted,cloud_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:204": {
+    "marks": "m3:cursor",
+    "tools": "cursor",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:205": {
+    "marks": "m1:devin,x1:devin",
+    "tools": "devin",
+    "modes": "ai_assisted,cloud_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:206": {
+    "marks": "m1:devin,x1:devin",
+    "tools": "devin",
+    "modes": "ai_assisted,cloud_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:207": {
+    "marks": "m1:coderabbit",
+    "tools": "coderabbit",
+    "modes": "cloud_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:208": {
+    "marks": "m2:claude,m3:claude",
+    "tools": "claude",
+    "modes": "ai_assisted,cloud_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:209": {
+    "marks": "m4:claude",
+    "tools": "claude",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:210": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:211": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:212": {
+    "marks": "m5:cursor",
+    "tools": "cursor",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:213": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:214": {
+    "marks": "m4:claude",
+    "tools": "claude",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:215": {
+    "marks": "m4:claude",
+    "tools": "claude",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:216": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:217": {
+    "marks": "m4:claude,m5:cursor",
+    "tools": "claude,cursor",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:218": {
+    "marks": "m1:devin,m6:qodo,x1:devin",
+    "tools": "devin,qodo",
+    "modes": "ai_assisted,cloud_agent,review_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:219": {
+    "marks": "m6:coderabbit",
+    "tools": "coderabbit",
+    "modes": "review_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:220": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:221": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:222": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:223": {
+    "marks": "m6:coderabbit",
+    "tools": "coderabbit",
+    "modes": "review_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:224": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:225": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:226": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:227": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:228": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:229": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:230": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:231": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:232": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:233": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:234": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:235": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:236": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:237": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:238": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 0,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:239": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:240": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:241": {
+    "marks": "x1:codex",
+    "tools": "codex",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:242": {
+    "marks": "x2:claude",
+    "tools": "claude",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:243": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:244": {
+    "marks": "m1:copilot,x1:copilot",
+    "tools": "copilot",
+    "modes": "ai_assisted,cloud_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:245": {
+    "marks": "m1:copilot",
+    "tools": "copilot",
+    "modes": "cloud_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
+   }
+  },
+  "diagnostics": {
+   "check:prs_without_commit_message": {
+    "value": 1
+   },
+   "check:tool_group_total_minus_pr_total": {
+    "value": 2
+   }
+  }
+ },
+ "_per_pr": {
+  "Q01": {
+   "pr_id": 201,
+   "scenario": "P-C1 PR author is the agent login (cursor[bot]); MERGED",
+   "marks": "m1:cursor",
+   "time_to_first_review_min": 120,
+   "time_in_review_min": 120,
+   "pr_cycle_min": 360,
+   "size": 30,
+   "yearweek_iso": 202610,
+   "u1_first_human_min": 120
+  },
+  "Q02": {
+   "pr_id": 202,
+   "scenario": "P-C2 PR author human, first commit author name cursoragent",
+   "marks": "m2:cursor,m3:cursor",
+   "time_to_first_review_min": 60,
+   "time_in_review_min": 240,
+   "pr_cycle_min": 600,
+   "size": 40,
+   "yearweek_iso": 202610,
+   "u1_first_human_min": 60
+  },
+  "Q03": {
+   "pr_id": 203,
+   "scenario": "P-C2e PR author human, commit name human, commit e-mail is the agent's",
+   "marks": "m2:cursor,m3:cursor",
+   "time_to_first_review_min": 30,
+   "time_in_review_min": 30,
+   "pr_cycle_min": 480,
+   "size": 30,
+   "yearweek_iso": 202610,
+   "u1_first_human_min": 30
+  },
+  "Q04": {
+   "pr_id": 204,
+   "scenario": "P-C3 only the 2nd commit is the agent: ai_assisted, not cloud_agent",
+   "marks": "m3:cursor",
+   "time_to_first_review_min": 90,
+   "time_in_review_min": 90,
+   "pr_cycle_min": 240,
+   "size": 20,
+   "yearweek_iso": 202610,
+   "u1_first_human_min": 90
+  },
+  "Q05": {
+   "pr_id": 205,
+   "scenario": "P-C4 cloud agent PR CLOSED (devin)",
+   "marks": "m1:devin,x1:devin",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 10,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q06": {
+   "pr_id": 206,
+   "scenario": "P-C5 cloud agent PR OPEN (devin)",
+   "marks": "m1:devin,x1:devin",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 15,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q07": {
+   "pr_id": 207,
+   "scenario": "P-C6 review agent (coderabbit) opened the PR: cloud_agent",
+   "marks": "m1:coderabbit",
+   "time_to_first_review_min": 60,
+   "time_in_review_min": 60,
+   "pr_cycle_min": 360,
+   "size": 12,
+   "yearweek_iso": 202611,
+   "u1_first_human_min": 60
+  },
+  "Q08": {
+   "pr_id": 208,
+   "scenario": "P-C7 two first commits at the same time, one is the agent (claude)",
+   "marks": "m2:claude,m3:claude",
+   "time_to_first_review_min": 30,
+   "time_in_review_min": 300,
+   "pr_cycle_min": 300,
+   "size": 40,
+   "yearweek_iso": 202611,
+   "u1_first_human_min": 30
+  },
+  "Q09": {
+   "pr_id": 209,
+   "scenario": "P-A1 2nd commit, 3rd line: Co-authored-by of an AI tool (claude)",
+   "marks": "m4:claude",
+   "time_to_first_review_min": 60,
+   "time_in_review_min": 60,
+   "pr_cycle_min": 180,
+   "size": 12,
+   "yearweek_iso": 202611,
+   "u1_first_human_min": 60
+  },
+  "Q10": {
+   "pr_id": 210,
+   "scenario": "P-A1h Co-authored-by is a person only",
+   "marks": null,
+   "time_to_first_review_min": 20,
+   "time_in_review_min": 20,
+   "pr_cycle_min": 120,
+   "size": 5,
+   "yearweek_iso": 202611,
+   "u1_first_human_min": 20
+  },
+  "Q11": {
+   "pr_id": 211,
+   "scenario": "P-A1m co-authored-by: Claude is in the middle of a sentence",
+   "marks": null,
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 6,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q12": {
+   "pr_id": 212,
+   "scenario": "P-A2 first line MADE-WITH: cursor (mixed case)",
+   "marks": "m5:cursor",
+   "time_to_first_review_min": 45,
+   "time_in_review_min": 45,
+   "pr_cycle_min": 120,
+   "size": 10,
+   "yearweek_iso": 202611,
+   "u1_first_human_min": 45
+  },
+  "Q13": {
+   "pr_id": 213,
+   "scenario": "P-A3 made-with: cursor only inside a sentence",
+   "marks": null,
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 4,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q14": {
+   "pr_id": 214,
+   "scenario": "P-A4 body in DevLake's JSON-string shape (quotes and the 2 characters \\n); trailer on the 3rd line",
+   "marks": "m4:claude",
+   "time_to_first_review_min": 120,
+   "time_in_review_min": 240,
+   "pr_cycle_min": 240,
+   "size": 10,
+   "yearweek_iso": 202611,
+   "u1_first_human_min": 120
+  },
+  "Q15": {
+   "pr_id": 215,
+   "scenario": "P-A5 CRLF line breaks; trailer on the 3rd line",
+   "marks": "m4:claude",
+   "time_to_first_review_min": 30,
+   "time_in_review_min": 30,
+   "pr_cycle_min": 180,
+   "size": 10,
+   "yearweek_iso": 202611,
+   "u1_first_human_min": 30
+  },
+  "Q16": {
+   "pr_id": 216,
+   "scenario": "P-A6 commits row missing (pull_request_commits has the row, commits has not)",
+   "marks": null,
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 1,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q17": {
+   "pr_id": 217,
+   "scenario": "P-M1 two tools: Co-authored-by Claude and Made-with: Cursor",
+   "marks": "m4:claude,m5:cursor",
+   "time_to_first_review_min": 60,
+   "time_in_review_min": 60,
+   "pr_cycle_min": 240,
+   "size": 20,
+   "yearweek_iso": 202611,
+   "u1_first_human_min": 60
+  },
+  "Q18": {
+   "pr_id": 218,
+   "scenario": "P-M2 cloud_agent (devin) and review_agent (qodo)",
+   "marks": "m1:devin,m6:qodo,x1:devin",
+   "time_to_first_review_min": 120,
+   "time_in_review_min": 120,
+   "pr_cycle_min": 360,
+   "size": 30,
+   "yearweek_iso": 202612,
+   "u1_first_human_min": 120
+  },
+  "Q19": {
+   "pr_id": 219,
+   "scenario": "P-R1 only a review agent review (coderabbit, is_bot = 0): review_agent, not counted for time to first review",
+   "marks": "m6:coderabbit",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 10,
+   "yearweek_iso": null,
+   "u1_first_human_min": 10
+  },
+  "Q20": {
+   "pr_id": 220,
+   "scenario": "P-R2 NORMAL comment (30 min) before the human COMMENTED review (90 min)",
+   "marks": null,
+   "time_to_first_review_min": 90,
+   "time_in_review_min": 300,
+   "pr_cycle_min": 300,
+   "size": 20,
+   "yearweek_iso": 202612,
+   "u1_first_human_min": 30
+  },
+  "Q21": {
+   "pr_id": 221,
+   "scenario": "P-R3 the author's own review is the earliest (D3)",
+   "marks": null,
+   "time_to_first_review_min": 60,
+   "time_in_review_min": 240,
+   "pr_cycle_min": 240,
+   "size": 15,
+   "yearweek_iso": 202612,
+   "u1_first_human_min": 60
+  },
+  "Q22": {
+   "pr_id": 222,
+   "scenario": "P-R4 first review is DISMISSED (D2)",
+   "marks": null,
+   "time_to_first_review_min": 45,
+   "time_in_review_min": 120,
+   "pr_cycle_min": 240,
+   "size": 15,
+   "yearweek_iso": 202612,
+   "u1_first_human_min": 45
+  },
+  "Q23": {
+   "pr_id": 223,
+   "scenario": "P-R5 only a DIFF row of a review agent (D13)",
+   "marks": "m6:coderabbit",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 8,
+   "yearweek_iso": null,
+   "u1_first_human_min": 15
+  },
+  "Q24": {
+   "pr_id": 224,
+   "scenario": "P-V1 two APPROVED, time in review ends at the 2nd",
+   "marks": null,
+   "time_to_first_review_min": 60,
+   "time_in_review_min": 180,
+   "pr_cycle_min": 300,
+   "size": 20,
+   "yearweek_iso": 202612,
+   "u1_first_human_min": 60
+  },
+  "Q25": {
+   "pr_id": 225,
+   "scenario": "P-V2 merged without APPROVED: ends at the merge (D5)",
+   "marks": null,
+   "time_to_first_review_min": 60,
+   "time_in_review_min": 240,
+   "pr_cycle_min": 240,
+   "size": 18,
+   "yearweek_iso": 202612,
+   "u1_first_human_min": 60
+  },
+  "Q26": {
+   "pr_id": 226,
+   "scenario": "P-V3 an APPROVED after the merge is not counted (D9)",
+   "marks": null,
+   "time_to_first_review_min": 120,
+   "time_in_review_min": 120,
+   "pr_cycle_min": 300,
+   "size": 20,
+   "yearweek_iso": 202612,
+   "u1_first_human_min": 120
+  },
+  "Q27": {
+   "pr_id": 227,
+   "scenario": "P-V4 only a bot APPROVED (dependabot): not counted, ends at the merge (D9)",
+   "marks": null,
+   "time_to_first_review_min": null,
+   "time_in_review_min": 200,
+   "pr_cycle_min": 200,
+   "size": 4,
+   "yearweek_iso": 202612,
+   "u1_first_human_min": null
+  },
+  "Q28": {
+   "pr_id": 228,
+   "scenario": "P-U1 reviewed but not merged (OPEN)",
+   "marks": null,
+   "time_to_first_review_min": 60,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 8,
+   "yearweek_iso": null,
+   "u1_first_human_min": 60
+  },
+  "Q29": {
+   "pr_id": 229,
+   "scenario": "P-T1 first commit (03-22 20:00) is before the PR is opened (03-23 00:00)",
+   "marks": null,
+   "time_to_first_review_min": 120,
+   "time_in_review_min": 120,
+   "pr_cycle_min": 840,
+   "size": 30,
+   "yearweek_iso": 202613,
+   "u1_first_human_min": 120
+  },
+  "Q30": {
+   "pr_id": 230,
+   "scenario": "P-T2 first commit (03-24 02:00) is after the PR is opened (03-24 00:00)",
+   "marks": null,
+   "time_to_first_review_min": 180,
+   "time_in_review_min": 180,
+   "pr_cycle_min": 600,
+   "size": 20,
+   "yearweek_iso": 202613,
+   "u1_first_human_min": 180
+  },
+  "Q31": {
+   "pr_id": 231,
+   "scenario": "P-D1 opened as a draft (is_draft = 1): same calculation (D4)",
+   "marks": null,
+   "time_to_first_review_min": 60,
+   "time_in_review_min": 60,
+   "pr_cycle_min": 720,
+   "size": 20,
+   "yearweek_iso": 202613,
+   "u1_first_human_min": 60
+  },
+  "Q32": {
+   "pr_id": 232,
+   "scenario": "P-B1 size 199 (additions + deletions)",
+   "marks": null,
+   "time_to_first_review_min": null,
+   "time_in_review_min": 120,
+   "pr_cycle_min": 120,
+   "size": 199,
+   "yearweek_iso": 202613,
+   "u1_first_human_min": null
+  },
+  "Q33": {
+   "pr_id": 233,
+   "scenario": "P-B1 size 200 (additions + deletions)",
+   "marks": null,
+   "time_to_first_review_min": null,
+   "time_in_review_min": 120,
+   "pr_cycle_min": 120,
+   "size": 200,
+   "yearweek_iso": 202613,
+   "u1_first_human_min": null
+  },
+  "Q34": {
+   "pr_id": 234,
+   "scenario": "P-B1 size 499 (additions + deletions)",
+   "marks": null,
+   "time_to_first_review_min": null,
+   "time_in_review_min": 120,
+   "pr_cycle_min": 120,
+   "size": 499,
+   "yearweek_iso": 202613,
+   "u1_first_human_min": null
+  },
+  "Q35": {
+   "pr_id": 235,
+   "scenario": "P-B1 size 500 (additions + deletions)",
+   "marks": null,
+   "time_to_first_review_min": null,
+   "time_in_review_min": 120,
+   "pr_cycle_min": 120,
+   "size": 500,
+   "yearweek_iso": 202613,
+   "u1_first_human_min": null
+  },
+  "Q36": {
+   "pr_id": 236,
+   "scenario": "P-W1 merged on Sunday 03-08 (ISO week 10)",
+   "marks": null,
+   "time_to_first_review_min": null,
+   "time_in_review_min": 720,
+   "pr_cycle_min": 720,
+   "size": 10,
+   "yearweek_iso": 202610,
+   "u1_first_human_min": null
+  },
+  "Q37": {
+   "pr_id": 237,
+   "scenario": "P-W1 merged on Monday 03-09 (ISO week 11)",
+   "marks": null,
+   "time_to_first_review_min": null,
+   "time_in_review_min": 720,
+   "pr_cycle_min": 720,
+   "size": 10,
+   "yearweek_iso": 202611,
+   "u1_first_human_min": null
+  },
+  "Q38": {
+   "pr_id": 238,
+   "scenario": "P-P1 opened 02-27 (before the period), merged 03-03 (inside): throughput yes, time to first review no",
+   "marks": null,
+   "time_to_first_review_min": null,
+   "time_in_review_min": 3480,
+   "pr_cycle_min": 6480,
+   "size": 40,
+   "yearweek_iso": 202610,
+   "u1_first_human_min": null
+  },
+  "Q39": {
+   "pr_id": 239,
+   "scenario": "P-N1 no mark at all",
+   "marks": null,
+   "time_to_first_review_min": 60,
+   "time_in_review_min": 60,
+   "pr_cycle_min": 240,
+   "size": 10,
+   "yearweek_iso": 202613,
+   "u1_first_human_min": 60
+  },
+  "Q40": {
+   "pr_id": 240,
+   "scenario": "P-O1 dependabot (a bot that is not an agent): everything_else",
+   "marks": null,
+   "time_to_first_review_min": null,
+   "time_in_review_min": 60,
+   "pr_cycle_min": 60,
+   "size": 4,
+   "yearweek_iso": 202613,
+   "u1_first_human_min": null
+  },
+  "Q41": {
+   "pr_id": 241,
+   "scenario": "P-X1 only the branch prefix codex/",
+   "marks": "x1:codex",
+   "time_to_first_review_min": 30,
+   "time_in_review_min": 30,
+   "pr_cycle_min": 360,
+   "size": 60,
+   "yearweek_iso": 202613,
+   "u1_first_human_min": 30
+  },
+  "Q42": {
+   "pr_id": 242,
+   "scenario": "P-X2 only the PR body Co-Authored-By: Claude",
+   "marks": "x2:claude",
+   "time_to_first_review_min": 20,
+   "time_in_review_min": 20,
+   "pr_cycle_min": 120,
+   "size": 20,
+   "yearweek_iso": 202613,
+   "u1_first_human_min": 20
+  },
+  "Q43": {
+   "pr_id": 243,
+   "scenario": "P-N2 login copilot-fan contains the word copilot (anchors, M7)",
+   "marks": null,
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 2,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q44": {
+   "pr_id": 244,
+   "scenario": "P-C0 author Copilot (not flagged is_bot), copilot/ branch",
+   "marks": "m1:copilot,x1:copilot",
+   "time_to_first_review_min": 60,
+   "time_in_review_min": 60,
+   "pr_cycle_min": 360,
+   "size": 40,
+   "yearweek_iso": 202613,
+   "u1_first_human_min": 60
+  },
+  "Q45": {
+   "pr_id": 245,
+   "scenario": "P-C0b author copilot-swe-agent[bot], CLOSED",
+   "marks": "m1:copilot",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 10,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  }
+ }
+}

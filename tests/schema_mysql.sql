@@ -10,6 +10,8 @@
 --   [ASG]  https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/core/models/domainlayer/code/pull_request_assignees.go
 --   [ACC]  https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/core/models/domainlayer/crossdomain/account.go
 --   [DE]   https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/core/models/domainlayer/domainlayer.go   (DomainEntity.Id)
+--   [PRC]  https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/core/models/domainlayer/code/pull_request_commit.go   (added for U2)
+--   [COM]  https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/core/models/domainlayer/code/commit.go   (added for U2)
 -- Where gorm gives no explicit type (plain string / time.Time / int / bool) the
 -- MySQL type below is the usual gorm default (longtext / datetime(3) / bigint /
 -- tinyint(1)); that mapping is an approximation, marked "default".
@@ -59,4 +61,26 @@ CREATE TABLE pull_request_assignees (
   name            VARCHAR(255),          -- [ASG]#L27 Name gorm:"type:varchar(255)"
   user_name       VARCHAR(255),          -- [ASG]#L28 UserName gorm:"type:varchar(255)"
   PRIMARY KEY (pull_request_id, assignee_id)
+);
+
+-- U2: the two commit tables. pull_request_commits has no message column; the message is in commits and
+-- is joined by sha. commits is not always filled by the default GitHub import (see docs/adr/0002).
+CREATE TABLE pull_request_commits (
+  commit_sha          VARCHAR(40) NOT NULL,  -- [PRC]#L27 CommitSha gorm:"primaryKey;type:varchar(40)"
+  pull_request_id     VARCHAR(255) NOT NULL, -- [PRC]#L28 PullRequestId gorm:"primaryKey;type:varchar(255)"
+  commit_author_name  VARCHAR(255),          -- [PRC]#L29 CommitAuthorName gorm:"type:varchar(255)"
+  commit_author_email VARCHAR(255),          -- [PRC]#L30 CommitAuthorEmail gorm:"type:varchar(255)"
+  commit_authored_date DATETIME(3),          -- [PRC]#L31 CommitAuthoredDate time.Time (default)
+  PRIMARY KEY (commit_sha, pull_request_id)
+);
+
+CREATE TABLE commits (
+  sha             VARCHAR(40) NOT NULL,  -- [COM]#L29 Sha gorm:"primaryKey;type:varchar(40)"
+  message         LONGTEXT,              -- [COM]#L33 Message string (default)
+  author_name     VARCHAR(255),          -- [COM]#L34 AuthorName gorm:"type:varchar(255)"
+  author_email    VARCHAR(255),          -- [COM]#L35 AuthorEmail gorm:"type:varchar(255)"
+  authored_date   DATETIME(3),           -- [COM]#L36 AuthoredDate time.Time (default)
+  committer_name  VARCHAR(255),          -- [COM]#L38 CommitterName gorm:"type:varchar(255)"
+  committer_email VARCHAR(255),          -- [COM]#L39 CommitterEmail gorm:"type:varchar(255)"
+  PRIMARY KEY (sha)
 );

@@ -59,5 +59,20 @@ of apache/devlake (https://github.com/apache/devlake/blob/v1.0.3-beta18/<path>#L
    --character-set-server=utf8mb4 --collation-server=utf8mb4_bin, the options in
    https://github.com/apache/devlake/blob/v1.0.3-beta18/docker-compose-dev-mysql.yml#L33
 
+8. Commit tables (tests/schema_mysql.sql, added with U2). Column names and types of
+   pull_request_commits and commits were written from the gorm struct tags in:
+     backend/core/models/domainlayer/code/pull_request_commit.go
+     backend/core/models/domainlayer/code/commit.go
+   Only the columns used are created; the source line of each column is written next
+   to it. No Go code is included.
+
+9. First commit and first reviewer (sql/mysql/ai_impact_parity.sql). The first commit of
+   a pull request is the one with the smallest commit_authored_date, as in
+   batchFetchFirstCommits, and the reviewer conditions follow the first-review query,
+   both in
+   https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/dora/tasks/change_lead_time_calculator.go
+   (the first-commit query is around line 206 and the first-review query around line 248
+   of the original file).
+
 Apache DevLake's own NOTICE and license terms apply to the parts above:
 https://www.apache.org/licenses/LICENSE-2.0
