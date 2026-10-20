@@ -1,0 +1,140 @@
+[
+ {
+  "url": "https://api.github.com/repos/octo-org/demo-repo/pulls?note=a'b\\c'; DELETE FROM pull_requests WHERE 1 = 1; --\\",
+  "link": null,
+  "body": [
+   {
+    "url": "https://api.github.com/repos/octo-org/demo-repo/pulls/41",
+    "id": 4000031,
+    "number": 41,
+    "state": "open",
+    "title": "t",
+    "user": {
+     "login": "author-x",
+     "id": 6001,
+     "node_id": "MDQ6VXNlcjE=",
+     "url": "https://api.github.com/users/author-x",
+     "type": "User",
+     "site_admin": false
+    },
+    "assignee": {
+     "login": "octocat",
+     "id": 7001,
+     "node_id": "MDQ6VXNlcjE=",
+     "url": "https://api.github.com/users/octocat",
+     "type": "User",
+     "site_admin": false
+    },
+    "assignees": [
+     {
+      "login": "octocat",
+      "id": 7001,
+      "node_id": "MDQ6VXNlcjE=",
+      "url": "https://api.github.com/users/octocat",
+      "type": "User",
+      "site_admin": false
+     }
+    ]
+   },
+   {
+    "url": "https://api.github.com/repos/octo-org/demo-repo/pulls/42",
+    "id": 4000032,
+    "number": 42,
+    "state": "open",
+    "title": "t",
+    "user": {
+     "login": "author-x",
+     "id": 6001,
+     "node_id": "MDQ6VXNlcjE=",
+     "url": "https://api.github.com/users/author-x",
+     "type": "User",
+     "site_admin": false
+    },
+    "assignee": {
+     "login": "bad'login\\",
+     "id": 7003,
+     "node_id": "MDQ6VXNlcjE=",
+     "url": "https://api.github.com/users/bad'login\\",
+     "type": "User",
+     "site_admin": false
+    },
+    "assignees": [
+     {
+      "login": "bad'login\\",
+      "id": 7003,
+      "node_id": "MDQ6VXNlcjE=",
+      "url": "https://api.github.com/users/bad'login\\",
+      "type": "User",
+      "site_admin": false
+     }
+    ]
+   },
+   {
+    "url": "https://api.github.com/repos/octo-org/demo-repo/pulls/43",
+    "id": 4000033,
+    "number": 43,
+    "state": "open",
+    "title": "t",
+    "user": {
+     "login": "author-x",
+     "id": 6001,
+     "node_id": "MDQ6VXNlcjE=",
+     "url": "https://api.github.com/users/author-x",
+     "type": "User",
+     "site_admin": false
+    },
+    "assignee": {
+     "login": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "id": 7004,
+     "node_id": "MDQ6VXNlcjE=",
+     "url": "https://api.github.com/users/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "type": "User",
+     "site_admin": false
+    },
+    "assignees": [
+     {
+      "login": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "id": 7004,
+      "node_id": "MDQ6VXNlcjE=",
+      "url": "https://api.github.com/users/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "type": "User",
+      "site_admin": false
+     }
+    ]
+   },
+   {
+    "url": "https://api.github.com/repos/octo-org/demo-repo/pulls/44",
+    "id": "4000034",
+    "number": 44,
+    "state": "open",
+    "title": "t",
+    "user": {
+     "login": "author-x",
+     "id": 6001,
+     "node_id": "MDQ6VXNlcjE=",
+     "url": "https://api.github.com/users/author-x",
+     "type": "User",
+     "site_admin": false
+    },
+    "assignee": {
+     "login": "octocat",
+     "id": 7001,
+     "node_id": "MDQ6VXNlcjE=",
+     "url": "https://api.github.com/users/octocat",
+     "type": "User",
+     "site_admin": false
+    },
+    "assignees": [
+     {
+      "login": "octocat",
+      "id": 7001,
+      "node_id": "MDQ6VXNlcjE=",
+      "url": "https://api.github.com/users/octocat",
+      "type": "User",
+      "site_admin": false
+     }
+    ]
+   }
+  ]
+ }
+]

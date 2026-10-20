@@ -1,0 +1,41 @@
+[
+ {
+  "url": "https://api.github.com/repos/octo-org/demo-repo/pulls?state=all&per_page=100",
+  "link": null,
+  "body": [
+   {
+    "url": "https://api.github.com/repos/octo-org/demo-repo/pulls/51",
+    "id": 5000001,
+    "number": 51,
+    "state": "open",
+    "title": "t",
+    "user": {
+     "login": "author-x",
+     "id": 6001,
+     "node_id": "MDQ6VXNlcjE=",
+     "url": "https://api.github.com/users/author-x",
+     "type": "User",
+     "site_admin": false
+    },
+    "assignee": {
+     "login": "alice",
+     "id": 1,
+     "node_id": "MDQ6VXNlcjE=",
+     "url": "https://api.github.com/users/alice",
+     "type": "User",
+     "site_admin": false
+    },
+    "assignees": [
+     {
+      "login": "alice",
+      "id": 1,
+      "node_id": "MDQ6VXNlcjE=",
+      "url": "https://api.github.com/users/alice",
+      "type": "User",
+      "site_admin": false
+     }
+    ]
+   }
+  ]
+ }
+]
