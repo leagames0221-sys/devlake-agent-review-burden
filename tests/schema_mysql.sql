@@ -76,7 +76,8 @@ CREATE TABLE pull_request_commits (
 
 CREATE TABLE commits (
   sha             VARCHAR(40) NOT NULL,  -- [COM]#L29 Sha gorm:"primaryKey;type:varchar(40)"
-  message         LONGTEXT,              -- [COM]#L33 Message string (default)
+  message         LONGBLOB,              -- [COM]#L33 Message string has no gorm type, but a real DevLake v1.0.3-beta18 has longblob here:
+                                         --   information_schema.columns, column_type = longblob, no character set (U4, docs/validation/u4-real-data.md)
   author_name     VARCHAR(255),          -- [COM]#L34 AuthorName gorm:"type:varchar(255)"
   author_email    VARCHAR(255),          -- [COM]#L35 AuthorEmail gorm:"type:varchar(255)"
   authored_date   DATETIME(3),           -- [COM]#L36 AuthoredDate time.Time (default)

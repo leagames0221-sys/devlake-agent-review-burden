@@ -24,6 +24,9 @@
 -- Modes: cloud_agent = m1 or m2; ai_assisted = m3, m4, m5 (and x1, x2); review_agent = m6;
 -- ai_used = any of the three. A PR may be in several tools and several modes.
 --
+-- Two shapes of the real tables that the first tests did not have (found in U4, ADR 0002 A1 and A2): the PR author is read from
+-- accounts.user_name (author_login), and commits.message (a longblob) is converted with CONVERT(... USING utf8mb4) before LOWER().
+--
 -- Text matching (DevLake's collation is utf8mb4_bin, so every match is made on LOWER(text) with a
 -- lower-case pattern): login and name patterns are anchored with ^...$ and a literal [bot] is written
 -- \\[bot\\] (the first backslash level is MySQL's string escape). A trailer is counted only at the start
@@ -88,7 +91,10 @@ pr_base AS (
   SELECT
     pr.id,
     pr.author_id,
-    pr.author_name,
+    -- the login of the PR author: the account row (accounts.user_name, "cursor[bot]") when there is one; DevLake's
+    -- GraphQL path stores pull_requests.author_name without "[bot]" ("cursor"), so that column is used only when the
+    -- account row is missing (ADR 0002 A1)
+    CASE WHEN au.id IS NULL THEN pr.author_name ELSE au.user_name END AS author_login,
     pr.status,
     pr.created_date,
     pr.merged_date,
@@ -98,6 +104,7 @@ pr_base AS (
     CASE WHEN $__timeFilter(pr.created_date) THEN 1 ELSE 0 END AS in_created,
     CASE WHEN $__timeFilter(pr.merged_date) THEN 1 ELSE 0 END AS in_merged
   FROM pull_requests pr
+  LEFT JOIN accounts au ON au.id = pr.author_id
   WHERE ($__timeFilter(pr.created_date) OR $__timeFilter(pr.merged_date))
     AND pr.base_repo_id IN (${repo_id})
 ),
@@ -147,7 +154,9 @@ pr_commit AS (
     prc.commit_author_name,
     prc.commit_author_email,
     prc.commit_authored_date,
-    cm.message,
+    -- commits.message is a longblob in a real DevLake (ADR 0002 A2): LOWER() and REGEXP_LIKE() on a binary string are case-sensitive,
+    -- so the text is converted first
+    CONVERT(cm.message USING utf8mb4) AS message,
     MIN(prc.commit_authored_date) OVER (PARTITION BY prc.pull_request_id) AS first_commit_at
   FROM pull_request_commits prc
   JOIN pr_base p ON p.id = prc.pull_request_id
@@ -157,7 +166,7 @@ marks AS (
   -- m1: the PR author is a cloud agent
   SELECT p.id AS pr_id, i.tool, 'm1' AS mark
   FROM pr_base p
-  JOIN identities i ON i.mode = 'cloud' AND i.field = 'pr_author' AND REGEXP_LIKE(LOWER(p.author_name), i.pattern)
+  JOIN identities i ON i.mode = 'cloud' AND i.field = 'pr_author' AND REGEXP_LIKE(LOWER(p.author_login), i.pattern)
   UNION
   -- m2: the first commit (D10: all commits with the earliest time) is authored by a cloud agent, by name or e-mail
   SELECT pc.pr_id, i.tool, 'm2'

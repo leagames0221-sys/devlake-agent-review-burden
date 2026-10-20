@@ -17,8 +17,9 @@
 -- Here percent_rank() is computed per agent (PARTITION BY agent).
 --
 -- Agent groups (first match wins; the order is the same as in docs/adr/0001-metric-definitions.md):
---   1 author_name in (Copilot, copilot-swe-agent[bot])        -> copilot
---   2 author_name = devin-ai-integration[bot]                 -> devin
+--   1 author login in (Copilot, copilot-swe-agent[bot])       -> copilot
+--   2 author login = devin-ai-integration[bot]                -> devin
+--     (author login = accounts.user_name of the PR author; pull_requests.author_name only when the account row is missing)
 --   3 head_ref copilot/ -> copilot   4 codex/ -> codex   5 cursor/ -> cursor
 --   6 devin/ -> devin
 --   7 head_ref claude/  or  description contains "Co-Authored-By: Claude" -> claude
@@ -60,6 +61,14 @@ acct AS (
          THEN 1 ELSE 0 END AS is_bot                                                         -- bot by flag or by agent name
   FROM accounts a
 ),
+pr_login AS (
+  -- the login of the PR author: accounts.user_name when the account row exists; pull_requests.author_name only when it does not.
+  -- DevLake's GraphQL path stores author_name without "[bot]" ("copilot-swe-agent", "devin-ai-integration") while accounts.user_name
+  -- has the account's own login ("Copilot", "devin-ai-integration[bot]"), so rules 1 and 2 read the account (ADR 0002 A1)
+  SELECT pr.id, CASE WHEN a.id IS NULL THEN pr.author_name ELSE a.user_name END AS login
+  FROM pull_requests pr
+  LEFT JOIN accounts a ON a.id = pr.author_id
+),
 pr_base AS (
   SELECT
     pr.id,
@@ -68,8 +77,8 @@ pr_base AS (
     pr.created_date,
     pr.additions + pr.deletions AS size,
     CASE
-      WHEN pr.author_name IN ('Copilot', 'copilot-swe-agent[bot]') THEN 'copilot'          -- rule 1
-      WHEN pr.author_name = 'devin-ai-integration[bot]' THEN 'devin'                        -- rule 2
+      WHEN pl.login IN ('Copilot', 'copilot-swe-agent[bot]') THEN 'copilot'                -- rule 1
+      WHEN pl.login = 'devin-ai-integration[bot]' THEN 'devin'                              -- rule 2
       WHEN pr.head_ref LIKE 'copilot/%' THEN 'copilot'                                      -- rule 3
       WHEN pr.head_ref LIKE 'codex/%' THEN 'codex'                                          -- rule 4
       WHEN pr.head_ref LIKE 'cursor/%' THEN 'cursor'                                        -- rule 5
@@ -81,6 +90,7 @@ pr_base AS (
     END AS agent
   FROM pull_requests pr
   LEFT JOIN acct au ON au.id = pr.author_id
+  LEFT JOIN pr_login pl ON pl.id = pr.id
   WHERE $__timeFilter(pr.created_date)
     AND pr.base_repo_id IN (${repo_id})
 ),

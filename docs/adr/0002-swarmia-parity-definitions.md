@@ -174,6 +174,8 @@ DevLake's database collation is `utf8mb4_bin` (docker-compose-dev-mysql.yml, as 
 The probes of Appendix A were run on `mysql:8.4` with that collation; what they show is built into the SQL:
 
 - **Case.** Every match is on `LOWER(text)` with a lower-case pattern (probe 1a: without it, `Co-Authored-By: Claude` does not match; 1c: a pattern read from a CTE column does not change that).
+  The text of a commit is first converted with `CONVERT(... USING utf8mb4)` because the real column is a `longblob` (A2 above); the probes of Appendix A were run on a text column.
+- **PR author.** m1 matches the login of the account of the PR author, not `pull_requests.author_name` (A1 above).
 - **Logins and names** are anchored with `^...$` (probe 2a: `copilot-fan` matches an unanchored `copilot`). A literal `[bot]` is written `\\[bot\\]` in the SQL file (the first level is MySQL's
   string escape); unescaped, `[bot]` is a character class (probes 3b, 3c).
 - **Trailers** (`Co-authored-by:`, `Made-with:`) count only at the start of a line, in two shapes, because a message can be in two shapes:
@@ -207,6 +209,58 @@ A review is stored with type `REVIEW`, the state of GitHub in `status` and, for 
 `if apiPullRequestReview.State != "PENDING" {`) and, as in U1, removed again by the SQL as a safeguard.
 The time a review was **requested** is in no DevLake table that was searched (beta18, plugins `github` and `github_graphql`, the domain-layer `code` models; searched for
 `review_request|requested_reviewer|timeline`). The GraphQL query asks for `reviewRequests` (upstream/beta18/graphql_pr_collector.go.txt L106; https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github_graphql/tasks/pr_collector.go; retrieved 2026-10-20) but it carries no time.
+
+### What a real DevLake showed (U4): two corrections, A1 and A2
+
+U4 (docs/validation/u4-real-data.md) ran this SQL on a real DevLake v1.0.3-beta18 (two public repositories, 297 PRs of 2026-09) and compared every PR with GitHub's raw data.
+It found two shapes of the real tables that the synthetic tests did not have. Both were in the SQL, both are corrected, and both have a scene in the fixture that fails without the correction.
+
+**A1: the PR author is read from `accounts`, not from `pull_requests.author_name`.**
+
+- *Source.* On the GraphQL path the extractor stores the login that the GraphQL answer gives: `githubPull.AuthorName = author.Login` (upstream/beta18/graphql_pr_extractor.go.txt L192;
+  https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github_graphql/tasks/pr_extractor.go; retrieved 2026-10-20). The account row is built from the REST user: `isBot := githubUser.Type == "Bot" || strings.HasSuffix(githubUser.Login, "[bot]")`
+  and `UserName: githubUser.Login` (upstream/beta18/github_account_convertor.go.txt L151 and L157;
+  https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github/tasks/account_convertor.go; retrieved 2026-10-20). The two logins are not the same string for a bot.
+- *Real data (SELECT on the DevLake database `lake`, 2026-10-21, 1,604 rows of `pull_requests`):*
+
+  ```sql
+  SELECT p.author_name, a.user_name, a.is_bot, COUNT(*) n
+  FROM pull_requests p LEFT JOIN accounts a ON a.id = p.author_id
+  WHERE p.author_name IN ('cursor','claude','copilot-swe-agent','copilot','Copilot')
+  GROUP BY 1,2,3 ORDER BY 1,2,3;
+  ```
+
+  | author_name | accounts.user_name | is_bot | PRs |
+  |---|---|---|---|
+  | claude | claude[bot] | 1 | 25 |
+  | copilot-swe-agent | Copilot | 0 | 14 |
+  | cursor | cursor[bot] | 1 | 95 |
+
+  `SELECT user_name, is_bot, COUNT(*) FROM accounts WHERE user_name LIKE '%[bot]' GROUP BY 1,2` lists, among others, `claude[bot]` (3 rows: is_bot 0, 0, 1), `copilot-swe-agent[bot]` (1 row, is_bot 0) and `cursor[bot]` (2 rows: is_bot 0, 1).
+  The account of the Copilot PRs is `Copilot`, which the pattern `^(copilot|...)$` of m1 matches after `LOWER()`. No PR of the 1,604 is without an account row (`SUM(a.id IS NULL)` = 0).
+  `pull_requests.author_name` is therefore the login without `[bot]`, and a pattern written for the REST form (`^cursor\[bot\]$`) never matches it: in U4, 43 PRs lost the m1 mark.
+- *Correction.* `pr_base` has `author_login`: `accounts.user_name` of `pull_requests.author_id`, and `pull_requests.author_name` only when there is no account row (`CASE WHEN au.id IS NULL THEN pr.author_name ELSE au.user_name END`). m1 matches `LOWER(author_login)`.
+- *Not done: a `[bot]` that is optional in the pattern, or added to `author_name`.* A person whose login is `cursor` or `claude` would then be taken for an agent. The account route keeps the exact login (`cursor[bot]`) and the type flag of GitHub.
+- *U1.* Rules 1 and 2 of `agent_review_burden.sql` have the same shape (`pr.author_name IN ('Copilot', 'copilot-swe-agent[bot]')`, `pr.author_name = 'devin-ai-integration[bot]'`). On the real data the rule 1 test on `author_name` is true for 0 of the 1,604 PRs and the same test on `accounts.user_name` for 14
+  (`SELECT SUM(pr.author_name IN ('Copilot','copilot-swe-agent[bot]')), SUM(a.user_name IN ('Copilot','copilot-swe-agent[bot]')), SUM(pr.author_name = 'devin-ai-integration[bot]'), SUM(a.user_name = 'devin-ai-integration[bot]') FROM pull_requests pr LEFT JOIN accounts a ON a.id = pr.author_id` gave 0, 14, 0, 0;
+  the rule 2 test is 0 on both because the two repositories have no Devin PR). U1 got the same correction (CTE `pr_login`: the account first, `author_name` only without an account row). In the U4 data U1's per-PR agent groups (275 PRs) and all its group values are identical before and after the correction (the CSV files of the two runs are equal), because all 14 PRs of `copilot-swe-agent` carry a `copilot/` branch (SELECT on `head_ref`), so rule 3 gave the same group;
+  the fixture `fixture_u1.sql` (P14 to P16) makes the difference visible. The expected values of `expected_u1.json` were recalculated by hand from the fixture (copilot: 5 PRs, devin: 2 PRs).
+
+**A2: the text of a commit is a binary string.**
+
+- *Source.* The model of the domain layer has `Message string` with no `gorm` type (upstream/beta18/commit.go.txt L34, https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/core/models/domainlayer/code/commit.go, retrieved 2026-10-20;
+  an archived copy of the model in the core migration scripts has the same line: upstream/beta18/core_migrationscripts_archived_commit.go.txt L31, https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/core/models/migrationscripts/archived/commit.go, retrieved 2026-10-21).
+  The synthetic schema followed that line and used `LONGTEXT` (my reading of gorm's usual MySQL type for a Go `string` without a tag, not run; marked "default" in tests/schema_mysql.sql).
+- *Real data (`information_schema.columns`, `table_schema = 'lake' AND table_name = 'commits' AND column_name = 'message'`):* `data_type` = `longblob`, `column_type` = `longblob`, `character_set_name` and `collation_name` empty.
+  The saved source does not say why the column is binary (a search for `blob` in `backend/core`, `impls`, `helpers`, `server` and `plugins/gitextractor` of the tag found nothing about this column); the fact comes from the database, and the SQL does not depend on the reason.
+- *Effect.* `LOWER()` does nothing on a binary string and `REGEXP_LIKE` on it is case-sensitive, so the pattern `co-authored-by` did not match the line `Co-Authored-By: Claude`. On the 2,769 rows of `commits`,
+  `SUM(LOCATE('co-authored-by', LOWER(message)) > 0)` = 0 and `SUM(LOCATE('co-authored-by', LOWER(CONVERT(message USING utf8mb4))) > 0)` = 1,621. In U4 the m4 mark was found for 0 of the 9 PRs that have it in GitHub's data.
+- *Correction.* `pr_commit.message` is `CONVERT(cm.message USING utf8mb4)`; m4 and m5 read it with `LOWER()` and `REGEXP_LIKE` as before. `tests/schema_mysql.sql` has `commits.message LONGBLOB`, so that all tests use the real type (a string literal is stored as bytes).
+  After the correction 4 of the 9 PRs are found; the other 5 have no commit message in DevLake at all (class (c) of U4: `commits` is filled by DevLake's git extractor and has 2,769 rows for 5,213 rows of `pull_request_commits`, so a message could be read for 45 of the 275 PRs opened in the period).
+  That is a lack of data, not an error of the SQL, and it stays.
+
+Scenes: `fixture_u2.sql` Q55 (the account is `cursor[bot]`, `author_name` is `cursor`: m1) and Q56 (a person's PR, the commit text `Co-Authored-By: Claude <...>` in a LONGBLOB: m4); `fixture_u1.sql` P14 (account `Copilot`, `author_name` `copilot-swe-agent`),
+P15 (account `devin-ai-integration[bot]`, `author_name` `devin-ai-integration`), P16 (no account row: `author_name` is used). Mutations: Appendix B3.
 
 ### Identity list
 
@@ -247,7 +301,7 @@ what it does not want.
 ## Appendix A: regular expression probes (section 3-3 of the U2 specification)
 
 Run on 2026-10-20 in a throw-away container, `mysql 8.4.11, server collation utf8mb4_bin, connection collation utf8mb4_0900_ai_ci`.
-The text under test is a `LONGTEXT` value in a table created with the server default collation (`utf8mb4_bin`), as DevLake's tables are.
+The text under test is a `LONGTEXT` value (a commit text in a real DevLake is a `longblob`, converted first: A2) in a table created with the server default collation (`utf8mb4_bin`), as DevLake's tables are.
 `text` is the MySQL string literal that was inserted; `SQL` is the expression exactly as it was sent to MySQL, written as in `sql/mysql/ai_impact_parity.sql` (the same two backslashes for one backslash of the regular expression); `hit` is the result: 1 = match.
 
 | Probe | Text inserted | Expression | hit |
@@ -282,7 +336,7 @@ Reading: 1a/1c = 0 and 1b/1d = 1 (case: lower the text first); 2a = 1 and 2b = 0
 
 ## Appendix B: mutation tests (section 5-4 of the U2 specification, and the review fixes)
 
-Each row: the SQL was changed in one place (a copy in a scratch directory; the repository file was not touched), and the two tests of U2 were run on it (`include_own_markers` 0 and 1, 685 and 687 values compared). A mutant is detected when the number of mismatches is above 0 in at least one of the two tests (the own markers x1 and x2 are used only when `include_own_markers` is 1, so a change in them can only be seen by the second test: row M5-12). All 35 mutants below are detected (the run was made on the final SQL and the final fixture, 54 PRs).
+Each row: the SQL was changed in one place (a copy in a scratch directory; the repository file was not touched), and the two tests of U2 were run on it (`include_own_markers` 0 and 1, 685 and 687 values compared). A mutant is detected when the number of mismatches is above 0 in at least one of the two tests (the own markers x1 and x2 are used only when `include_own_markers` is 1, so a change in them can only be seen by the second test: row M5-12). All 35 mutants below are detected (the run was made on the final SQL and the final fixture of that time, 54 PRs; the tests of U2 compare 685 and 687 values there, 697 and 699 values with the 56 PRs after U4).
 
 
 ### B1. The twelve mutations of the specification
@@ -295,7 +349,7 @@ Each row: the SQL was changed in one place (a copy in a scratch directory; the r
 | M4 | D5 removed (no merge-time fallback) | 16 | 15 | `time_in_review tool:claude n: expected 6 got 4` |
 | M5 | `LOWER()` removed, **one place at a time** (12 places in the SQL, rows M5-01 to M5-12 below). Detected: 12 of 12 | (rows below) | (rows below) | |
 | M5-01 | `LOWER()` removed: `acct`: the login of a bot account (`LOWER(a.user_name)`) | 8 | 8 | `time_to_first_review tool:qodo n_defined: expected 1 got 2` |
-| M5-02 | `LOWER()` removed: m1: the PR author (`LOWER(p.author_name)`) | 74 | 19 | `time_to_first_review tool:copilot prs: expected 2 got 1` |
+| M5-02 | `LOWER()` removed: m1: the PR author (`LOWER(p.author_login)`; `LOWER(p.author_name)` when the row was measured) | 74 | 19 | `time_to_first_review tool:copilot prs: expected 2 got 1` |
 | M5-03 | `LOWER()` removed: m2: the commit author name | 23 | 23 | `time_to_first_review mode:cloud_agent prs: expected 11 got 9` |
 | M5-04 | `LOWER()` removed: m2: the commit author e-mail | 18 | 18 | `time_to_first_review mode:cloud_agent prs: expected 11 got 10` |
 | M5-05 | `LOWER()` removed: m3: the commit author name | 75 | 75 | `time_to_first_review tool:cursor prs: expected 9 got 8` |
@@ -332,3 +386,21 @@ Each row: the SQL was changed in one place (a copy in a scratch directory; the r
 | 8 | D9: `hr.created_date < p.merged_date` -> `<=` | Q54: an APPROVED at exactly the merge time | 2 | 2 | `time_in_review tool:everything_else mean_minutes: expected 300.6 got 310.2000` |
 
 The rows 3a, 3b, 4a, 4b are the same mutation applied at one of its two places; each place alone is detected, so neither place is carried by the other.
+
+### B3. The mutations of the corrections A1 and A2 (U4; fixture of 56 PRs and 16 U1 PRs)
+
+Same method as B1 and B2 (a copy of the SQL in a scratch directory; the repository file was not touched). U2: the two tests with 697 and 699 values compared; U1: `python tests/run_u1.py`, 119 values compared.
+
+| # | Change | Scenario (fixture) | Mismatches, own markers off | Mismatches, own markers on | First mismatch (own markers off) |
+|---|---|---|---|---|---|
+| A1 | m1 reads `pull_requests.author_name` again (`author_login` = `pr.author_name`) | Q55: account `cursor[bot]`, `author_name` `cursor` | 33 | 31 | `time_to_first_review tool:cursor prs: expected 10 got 9` |
+| A2 | `CONVERT(cm.message USING utf8mb4)` removed (`cm.message`) | Q56: `Co-Authored-By: Claude` in a LONGBLOB (and every other m4/m5 scene, whose text is a LONGBLOB too) | 131 | 129 | `time_to_first_review tool:claude prs: expected 7 got 1` |
+
+| # | Change (U1, `agent_review_burden.sql`) | Scenario | Mismatches of 119 | First mismatch |
+|---|---|---|---|---|
+| U1-1 | rules 1 and 2 read `pr.author_name` again | P14, P15 | 24 | `m1_first_human_reaction copilot pr_count: expected 5 got 4` |
+| U1-1a | rule 1 only | P14 | 14 | `m1_first_human_reaction copilot pr_count: expected 5 got 4` |
+| U1-1b | rule 2 only | P15 | 14 | `m1_first_human_reaction devin pr_count: expected 2 got 1` |
+| U1-2 | no fallback to `author_name` when the account row is missing (`a.user_name AS login`) | P16 | 14 | `m1_first_human_reaction copilot pr_count: expected 5 got 4` |
+
+All six are detected (A1, A2, U1-1, U1-1a, U1-1b, U1-2). Mutation A1 fails on the row `pr:github:GithubPullRequest:1:255` of `pr_classification` (marks, tools, modes, ai_used), mutation A2 on the row `...:256`, and both on the group values that depend on them.

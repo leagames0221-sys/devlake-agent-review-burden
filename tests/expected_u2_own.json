@@ -6,7 +6,7 @@
  "metrics": {
   "time_to_first_review": {
    "tool:claude": {
-    "prs": 7,
+    "prs": 8,
     "n_defined": 7,
     "mean_minutes": 52.857143,
     "median_minutes": 50
@@ -36,7 +36,7 @@
     "median_minutes": null
    },
    "tool:cursor": {
-    "prs": 9,
+    "prs": 10,
     "n_defined": 8,
     "mean_minutes": 59.375,
     "median_minutes": 45
@@ -72,13 +72,13 @@
     "median_minutes": 60
    },
    "mode:cloud_agent": {
-    "prs": 11,
+    "prs": 12,
     "n_defined": 8,
     "mean_minutes": 63.75,
     "median_minutes": 60
    },
    "mode:ai_assisted": {
-    "prs": 19,
+    "prs": 20,
     "n_defined": 16,
     "mean_minutes": 54.6875,
     "median_minutes": 45
@@ -90,7 +90,7 @@
     "median_minutes": 120
    },
    "mode:ai_used": {
-    "prs": 26,
+    "prs": 28,
     "n_defined": 18,
     "mean_minutes": 58.611111,
     "median_minutes": 50
@@ -403,9 +403,9 @@
   },
   "batch_size": {
    "tool:claude": {
-    "prs": 7,
-    "mean_size": 16.857143,
-    "median_size": 12,
+    "prs": 8,
+    "mean_size": 15.5,
+    "median_size": 10,
     "share_lt200": 1.0,
     "share_200_499": 0.0,
     "share_ge500": 0.0
@@ -443,9 +443,9 @@
     "share_ge500": null
    },
    "tool:cursor": {
-    "prs": 9,
-    "mean_size": 18.888889,
-    "median_size": 20,
+    "prs": 10,
+    "mean_size": 18.2,
+    "median_size": 12,
     "share_lt200": 1.0,
     "share_200_499": 0.0,
     "share_ge500": 0.0
@@ -491,17 +491,17 @@
     "share_ge500": 0.037037
    },
    "mode:cloud_agent": {
-    "prs": 11,
-    "mean_size": 24.454545,
-    "median_size": 30,
+    "prs": 12,
+    "mean_size": 23.416667,
+    "median_size": 15,
     "share_lt200": 1.0,
     "share_200_499": 0.0,
     "share_ge500": 0.0
    },
    "mode:ai_assisted": {
-    "prs": 19,
-    "mean_size": 20.684211,
-    "median_size": 15,
+    "prs": 20,
+    "mean_size": 19.95,
+    "median_size": 12,
     "share_lt200": 1.0,
     "share_200_499": 0.0,
     "share_ge500": 0.0
@@ -515,8 +515,8 @@
     "share_ge500": 0.0
    },
    "mode:ai_used": {
-    "prs": 26,
-    "mean_size": 18.269231,
+    "prs": 28,
+    "mean_size": 17.607143,
     "median_size": 12,
     "share_lt200": 1.0,
     "share_200_499": 0.0,
@@ -533,10 +533,10 @@
   },
   "cloud_agent_outcomes": {
    "mode:cloud_agent": {
-    "prs": 11,
+    "prs": 12,
     "merged": 8,
     "closed": 2,
-    "open": 1
+    "open": 2
    },
    "mode:cloud_agent|tool:claude": {
     "prs": 1,
@@ -569,10 +569,10 @@
     "open": 0
    },
    "mode:cloud_agent|tool:cursor": {
-    "prs": 4,
+    "prs": 5,
     "merged": 4,
     "closed": 0,
-    "open": 0
+    "open": 1
    },
    "mode:cloud_agent|tool:devin": {
     "prs": 3,
@@ -1031,6 +1031,22 @@
     "ai_used": 0,
     "in_created": 1,
     "in_merged": 1
+   },
+   "pr:github:GithubPullRequest:1:255": {
+    "marks": "m1:cursor",
+    "tools": "cursor",
+    "modes": "cloud_agent",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
+   },
+   "pr:github:GithubPullRequest:1:256": {
+    "marks": "m4:claude",
+    "tools": "claude",
+    "modes": "ai_assisted",
+    "ai_used": 1,
+    "in_created": 1,
+    "in_merged": 0
    }
   },
   "diagnostics": {
@@ -1636,6 +1652,28 @@
    "size": 10,
    "yearweek_iso": 202612,
    "u1_first_human_min": 120
+  },
+  "Q55": {
+   "pr_id": 255,
+   "scenario": "P-R1 (U4) account cursor[bot], author_name cursor (no [bot]): m1 reads the account; OPEN",
+   "marks": "m1:cursor",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 12,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
+  },
+  "Q56": {
+   "pr_id": 256,
+   "scenario": "P-R2 (U4) commits.message is a LONGBLOB, trailer written Co-Authored-By: Claude: m4 needs CONVERT before LOWER; OPEN",
+   "marks": "m4:claude",
+   "time_to_first_review_min": null,
+   "time_in_review_min": null,
+   "pr_cycle_min": null,
+   "size": 6,
+   "yearweek_iso": null,
+   "u1_first_human_min": null
   }
  }
 }

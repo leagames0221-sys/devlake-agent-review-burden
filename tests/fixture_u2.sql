@@ -1,6 +1,6 @@
--- Synthetic fixture for U2 (54 PRs, one repo, all times UTC). Expected values: expected_u2_parity.json
+-- Synthetic fixture for U2 (56 PRs, one repo, all times UTC). Expected values: expected_u2_parity.json
 -- (include_own_markers = 0) and expected_u2_own.json (= 1); the per-PR values are written in each file under _per_pr.
--- Ids: accounts github:GithubAccount:1:N, PRs github:GithubPullRequest:1:2NN (Qk = 200 + k, Q01 = 201 ... Q54 = 254),
+-- Ids: accounts github:GithubAccount:1:N, PRs github:GithubPullRequest:1:2NN (Qk = 200 + k, Q01 = 201 ... Q56 = 256),
 -- commit shas sha-2NN-n, comment ids c:2NN:n, review ids rv:2NN:n. Period of the test: 2026-03-01 .. 2026-03-31.
 -- The account coderabbitai[bot] has is_bot = 0 on purpose (only the identities list marks it as a bot, D11);
 -- Copilot has is_bot = 0 as in U1 (GET /users/Copilot answers 404 on the REST path).
@@ -61,6 +61,8 @@
 --   Q52 (252): P-L7 Co-authored-by: Claudette (a person whose name starts with Claude): not a Claude trailer, the word end is needed (mutation F)
 --   Q53 (253): P-L8 commit e-mail xcursoragent@cursor.com with a human name: not the agent, the start anchor of the e-mail is needed (mutation G)
 --   Q54 (254): P-L9 an APPROVED at exactly the merge time is not counted (strict <, D9); the earlier APPROVED ends Time in review (mutation H)
+--   Q55 (255): P-R1 (U4) the shape of a real DevLake: the account is cursor[bot] (is_bot = 1) but pull_requests.author_name is "cursor" (GraphQL path, no [bot]): m1 must read the account (ADR 0002 A1); OPEN
+--   Q56 (256): P-R2 (U4) commits.message is a LONGBLOB (as in a real DevLake) and the trailer is written "Co-Authored-By: Claude": m4 needs CONVERT before LOWER (ADR 0002 A2); OPEN
 -- P-E1 (even count, median as in U1): the group tool:cursor has 8 PRs merged in the period (Q01 Q02 Q03 Q04 Q12 Q17 Q48 Q49); their time in review is
 --   30 30 40 45 60 90 120 240 (sorted); the two middle values are 45 and 60 and the method of DevLake's dashboards gives 45 (the lower one), not 52.5.
 -- P-W1: Q36 is merged on Sunday 2026-03-08 and Q37 on Monday 2026-03-09, so they fall in ISO weeks 202610 and 202611.
@@ -136,7 +138,9 @@ INSERT INTO pull_requests
  ('github:GithubPullRequest:1:251', 'github:GithubRepo:1:1', 'OPEN', '', 'dave', 'github:GithubAccount:1:4', '2026-03-31 00:00:00', NULL, NULL, 'feature/l6', 2, 1, 0),
  ('github:GithubPullRequest:1:252', 'github:GithubRepo:1:1', 'MERGED', '', 'carol', 'github:GithubAccount:1:3', '2026-03-12 12:00:00', '2026-03-12 14:00:00', '2026-03-12 14:00:00', 'feature/l7', 5, 0, 0),
  ('github:GithubPullRequest:1:253', 'github:GithubRepo:1:1', 'MERGED', '', 'bob', 'github:GithubAccount:1:2', '2026-03-18 12:00:00', '2026-03-18 15:00:00', '2026-03-18 15:00:00', 'feature/l8', 4, 4, 0),
- ('github:GithubPullRequest:1:254', 'github:GithubRepo:1:1', 'MERGED', '', 'bob', 'github:GithubAccount:1:2', '2026-03-17 12:00:00', '2026-03-17 18:00:00', '2026-03-17 18:00:00', 'feature/l9', 7, 3, 0);
+ ('github:GithubPullRequest:1:254', 'github:GithubRepo:1:1', 'MERGED', '', 'bob', 'github:GithubAccount:1:2', '2026-03-17 12:00:00', '2026-03-17 18:00:00', '2026-03-17 18:00:00', 'feature/l9', 7, 3, 0),
+ ('github:GithubPullRequest:1:255', 'github:GithubRepo:1:1', 'OPEN', '', 'cursor', 'github:GithubAccount:1:7', '2026-03-19 00:00:00', NULL, NULL, 'agent/r1', 7, 5, 0),
+ ('github:GithubPullRequest:1:256', 'github:GithubRepo:1:1', 'OPEN', '', 'dave', 'github:GithubAccount:1:4', '2026-03-19 12:00:00', NULL, NULL, 'feature/r2', 4, 2, 0);
 
 INSERT INTO pull_request_commits (commit_sha, pull_request_id, commit_author_name, commit_author_email, commit_authored_date) VALUES
  ('sha-201-1', 'github:GithubPullRequest:1:201', 'Pat Dev', 'pat@example.com', '2026-03-02 00:00:00'),
@@ -195,9 +199,12 @@ INSERT INTO pull_request_commits (commit_sha, pull_request_id, commit_author_nam
  ('sha-251-1', 'github:GithubPullRequest:1:251', 'Dave', 'dave@example.com', '2026-03-31 00:00:00'),
  ('sha-252-1', 'github:GithubPullRequest:1:252', 'Carol', 'carol@example.com', '2026-03-12 12:00:00'),
  ('sha-253-1', 'github:GithubPullRequest:1:253', 'Hank Human', 'xcursoragent@cursor.com', '2026-03-18 12:00:00'),
- ('sha-254-1', 'github:GithubPullRequest:1:254', 'Pat Dev', 'pat@example.com', '2026-03-17 12:00:00');
+ ('sha-254-1', 'github:GithubPullRequest:1:254', 'Pat Dev', 'pat@example.com', '2026-03-17 12:00:00'),
+ ('sha-255-1', 'github:GithubPullRequest:1:255', 'Pat Dev', 'pat@example.com', '2026-03-19 00:00:00'),
+ ('sha-256-1', 'github:GithubPullRequest:1:256', 'Dave', 'dave@example.com', '2026-03-19 12:00:00');
 
--- commits: the message of every commit except the one of Q16 (P-A6: the row is missing).
+-- commits: the message of every commit except the one of Q16 (P-A6: the row is missing). commits.message is a LONGBLOB (tests/schema_mysql.sql),
+-- as in a real DevLake: a string literal is stored as bytes.
 INSERT INTO commits (sha, message, author_name, author_email, authored_date, committer_name, committer_email) VALUES
  ('sha-201-1', 'Work 201', 'Pat Dev', 'pat@example.com', '2026-03-02 00:00:00', 'Pat Dev', 'pat@example.com'),
  ('sha-202-1', 'Implement c2', 'Cursor Agent', 'noreply@example.com', '2026-03-03 00:00:00', 'Cursor Agent', 'noreply@example.com'),
@@ -254,7 +261,9 @@ INSERT INTO commits (sha, message, author_name, author_email, authored_date, com
  ('sha-251-1', '"Made-with: Cursor\\nmore text"', 'Dave', 'dave@example.com', '2026-03-31 00:00:00', 'Dave', 'dave@example.com'),
  ('sha-252-1', 'Fix z\n\nCo-authored-by: Claudette <claudette@example.com>', 'Carol', 'carol@example.com', '2026-03-12 12:00:00', 'Carol', 'carol@example.com'),
  ('sha-253-1', 'Work l8', 'Hank Human', 'xcursoragent@cursor.com', '2026-03-18 12:00:00', 'Hank Human', 'xcursoragent@cursor.com'),
- ('sha-254-1', 'Work 254', 'Pat Dev', 'pat@example.com', '2026-03-17 12:00:00', 'Pat Dev', 'pat@example.com');
+ ('sha-254-1', 'Work 254', 'Pat Dev', 'pat@example.com', '2026-03-17 12:00:00', 'Pat Dev', 'pat@example.com'),
+ ('sha-255-1', 'Work 255', 'Pat Dev', 'pat@example.com', '2026-03-19 00:00:00', 'Pat Dev', 'pat@example.com'),
+ ('sha-256-1', 'Add r2\n\nCo-Authored-By: Claude <noreply@anthropic.com>', 'Dave', 'dave@example.com', '2026-03-19 12:00:00', 'Dave', 'dave@example.com');
 
 -- Comments. type REVIEW carries the GitHub state in status; DIFF and NORMAL have status ''.
 INSERT INTO pull_request_comments (id, pull_request_id, body, account_id, created_date, type, review_id, status) VALUES

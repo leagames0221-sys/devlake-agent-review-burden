@@ -1,7 +1,7 @@
--- Synthetic fixture for U1 (13 PRs, one repo, all times UTC, no draft PRs).
+-- Synthetic fixture for U1 (16 PRs, one repo, all times UTC, no draft PRs).
 -- The expected values for this data are in expected_u1.json.
 -- Ids as they appear below: account ids github:GithubAccount:1:N, PR ids
--- github:GithubPullRequest:1:1NN (P1 = 101 ... P13 = 113), comment ids c:<PR number>:<n>
+-- github:GithubPullRequest:1:1NN (P1 = 101 ... P16 = 116), comment ids c:<PR number>:<n>
 -- (for example c:101:3), review ids rv:<PR number>:<n>.
 -- The account "Copilot" has is_bot = 0 on purpose: DevLake's REST path cannot read the user
 -- type of "Copilot" (GET /users/Copilot returns 404), so the account is stored as a non-bot.
@@ -35,7 +35,14 @@ INSERT INTO pull_requests
 co-authored-by: claude <noreply@anthropic.com>', 'dave', 'github:GithubAccount:1:4', '2026-03-14 00:00:00', '2026-03-14 03:00:00', '2026-03-14 03:00:00', 'feature/y', 4, 4, 0),
  ('github:GithubPullRequest:1:113', 'github:GithubRepo:1:1', 'OPEN', 'Docs
 
-Co-Authored-By: Claude <noreply@anthropic.com>', 'bob', 'github:GithubAccount:1:2', '2026-03-15 00:00:00', NULL, NULL, 'copilot/doc-13', 6, 0, 0);
+Co-Authored-By: Claude <noreply@anthropic.com>', 'bob', 'github:GithubAccount:1:2', '2026-03-15 00:00:00', NULL, NULL, 'copilot/doc-13', 6, 0, 0),
+ -- P14..P16: the shape of a real DevLake (GraphQL path, found in U4): author_name has no [bot] and is not the login of the account.
+ -- P14: account "Copilot", author_name copilot-swe-agent, no branch/body mark: rule 1 must read the account (-> copilot, not other_bot)
+ ('github:GithubPullRequest:1:114', 'github:GithubRepo:1:1', 'OPEN', '', 'copilot-swe-agent', 'github:GithubAccount:1:5', '2026-03-16 00:00:00', NULL, NULL, 'feature/q', 5, 3, 0),
+ -- P15: account devin-ai-integration[bot], author_name devin-ai-integration: rule 2 must read the account (-> devin, not other_bot)
+ ('github:GithubPullRequest:1:115', 'github:GithubRepo:1:1', 'CLOSED', '', 'devin-ai-integration', 'github:GithubAccount:1:7', '2026-03-17 00:00:00', NULL, '2026-03-17 06:00:00', 'feature/r', 15, 5, 0),
+ -- P16: the account row is missing (author_id points to no row): author_name is used (rule 1 -> copilot)
+ ('github:GithubPullRequest:1:116', 'github:GithubRepo:1:1', 'MERGED', '', 'copilot-swe-agent[bot]', 'github:GithubAccount:1:999', '2026-03-18 00:00:00', '2026-03-18 04:00:00', '2026-03-18 04:00:00', 'feature/s', 2, 2, 0);
 
 INSERT INTO pull_request_assignees (pull_request_id, assignee_id, name, user_name) VALUES
  ('github:GithubPullRequest:1:101', 'github:GithubAccount:1:1', 'alice', 'alice'),

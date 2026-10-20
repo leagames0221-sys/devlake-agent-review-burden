@@ -1,5 +1,5 @@
 {
- "_comment": "U1's metric 1 (first human reaction, any comment type) run on fixture_u2.sql, computed by hand: P-R2 (Q20) is 30 minutes here (the NORMAL comment) while time_to_first_review is 90 (the REVIEW row). Only the fields listed are compared. coderabbitai[bot] has is_bot = 0, so U1 counts its comments as human (Q19, Q23).",
+ "_comment": "U1's metric 1 (first human reaction, any comment type) run on fixture_u2.sql, computed by hand: P-R2 (Q20) is 30 minutes here (the NORMAL comment) while time_to_first_review is 90 (the REVIEW row). Only the fields listed are compared. coderabbitai[bot] has is_bot = 0, so U1 counts its comments as human (Q19, Q23). Q55 (account cursor[bot], is_bot = 1, no branch mark) is other_bot and Q56 (a person) is no_marker; neither has a comment.",
  "period": "2026-03-01..2026-03-31",
  "repo": "github:GithubRepo:1:1",
  "metrics": {
@@ -30,12 +30,12 @@
     "median_minutes": null
    },
    "other_bot": {
-    "pr_count": 2,
+    "pr_count": 3,
     "reacted": 1,
     "median_minutes": 120
    },
    "no_marker": {
-    "pr_count": 44,
+    "pr_count": 45,
     "reacted": 31,
     "median_minutes": 60
    }
