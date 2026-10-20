@@ -435,8 +435,9 @@ def num(value):
 
 def print_estimate(api, args):
     say("[4] ESTIMATE of what the import asks GitHub for. This is an estimate, not a measurement.")
-    say("    Counts are read now with `gh api` (read-only). They are totals over all time; DevLake only reads what changed")
-    say("    after the Data Time Range start, so they are upper bounds.")
+    say("    Counts are read now with `gh api` (read-only). PRs and issues are totals over all time; DevLake only reads what changed")
+    say("    after the Data Time Range start, so those two are upper bounds. The workflow-run count is the total_count of GitHub's API;")
+    say("    it can come out smaller than the real number (example: sanity-io/cli showed 40,000, DevLake got 82,245).")
     head = ("repo", "PRs", "issues", "workflow runs", "PR authors (upper bound = PRs)")
     rows = [head]
     for repo, prs, issues, runs in estimate_counts(args.repos, not args.no_github):

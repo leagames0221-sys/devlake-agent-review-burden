@@ -39,7 +39,7 @@ the `gitextractor` task contain a clone URL).
 
 It is an estimate, not a measurement. For each repository it reads four counts with `gh api` (read-only GET; if `gh` is missing or
 fails the cell says `not fetched`; `--no-github` skips it): the number of PRs, of issues, of workflow runs
-(`total_count` of `actions/runs`), and the upper bound of the number of PR authors (= the number of PRs). It lists the subtasks of
+(`total_count` of `actions/runs`; GitHub's own count, which can come out smaller than the real number: for sanity-io/cli it showed 40,000 and DevLake got 82,245), and the upper bound of the number of PR authors (= the number of PRs). It lists the subtasks of
 the `github_graphql` task that run with the three entities and those that do not, and it shows what DevLake measured in the first
 import (`--reference-pipeline`, default 1): the subtasks that stay, with their times, and the total time of the subtasks that are
 taken out.

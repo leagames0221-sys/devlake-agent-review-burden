@@ -42,8 +42,8 @@ Medians use the method of DevLake's own dashboards: the largest value among rows
 
 | Order | Signal | Group |
 |---|---|---|
-| 1 | author name `Copilot` or `copilot-swe-agent[bot]` | copilot |
-| 2 | author name `devin-ai-integration[bot]` | devin |
+| 1 | login of the PR author's account (`accounts.user_name`; `pull_requests.author_name` only when there is no account row) is `Copilot` or `copilot-swe-agent[bot]` | copilot |
+| 2 | login of the PR author's account (as in rule 1) is `devin-ai-integration[bot]` | devin |
 | 3-6 | `head_ref` starts with `copilot/`, `codex/`, `cursor/`, `devin/` | copilot, codex, cursor, devin |
 | 7 | `head_ref` starts with `claude/`, or the PR body contains `Co-Authored-By: Claude` (case-insensitive) | claude |
 | 8 | author is a bot (see "Who is a bot" above) | other_bot (not part of "no marker") |
@@ -53,7 +53,7 @@ Because the first match wins, a PR from a `copilot/` branch whose body also carr
 
 Sources: bot author names and the Claude body mark come from the search conditions of [arXiv:2507.15003v1](https://arxiv.org/html/2507.15003v1), which list
 > "Co-Authored-By: Claude"
-as a signal in the PR body. The Claude branch prefix is the default of Anthropic's [claude-code-action](https://github.com/anthropics/claude-code-action/blob/main/action.yml) (input `branch_prefix`: `defaults to 'claude/'`). The two names used for Copilot differ because REST and GraphQL report it differently.
+as a signal in the PR body. The Claude branch prefix is the default of Anthropic's [claude-code-action](https://github.com/anthropics/claude-code-action/blob/main/action.yml) (input `branch_prefix`: `defaults to 'claude/'`). The two names used for Copilot differ because REST and GraphQL report it differently: on the GraphQL path `pull_requests.author_name` is the login without `[bot]` (`copilot-swe-agent`), while the account row of the PR author has the account's own login (`Copilot`). Rules 1 and 2 therefore read the login of that account, and `pull_requests.author_name` only when there is no account row (ADR 0002, A1; found on a real DevLake in U4).
 
 The group "no marker" is not called "human-only PRs": a person can ask `@copilot` to change a person's PR, and some agents leave no mark.
 

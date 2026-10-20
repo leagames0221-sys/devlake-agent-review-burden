@@ -4,11 +4,11 @@ Record of the U4 check (SPEC U4). Two public repositories were imported into a l
 
 ## 1. Result in short
 
-- **297 PRs compared, 292 of them with every item equal** (7051 of 7062 items equal). Times, sizes, outcomes, the period flags, U1's agent group, (1) and (1B) are equal on every PR, and so are m1, m2, m3, m5, m6, x1 and x2. The only differences are the m4 line of 5 PRs whose commit message is not in DevLake (class (c), section 5); one of them also changes the tool and mode group of the PR. The 289 / 291 group values (parity / own markers) and 63 U1 group values equal too, once that one PR is given the group DevLake gave it (section 7).
+- **297 PRs compared, 292 of them with every item equal** (7051 of 7062 items equal). Times, sizes, outcomes, the period flags, U1's agent group, (1) and (1B) are equal on every PR, and so are m1, m2, m3, m5, m6, x1 and x2. The only differences are the m4 line of 5 PRs whose branch commits (the commits that `pull_request_commits` lists for the PR) have no message in DevLake (class (c), section 5); one of them also changes the tool and mode group of the PR. The 289 / 291 group values (parity / own markers) and 63 U1 group values equal too, once that one PR is given the group DevLake gave it (section 7).
 - **The first run found two defects of the SQL (class (a)) and they are corrected in this commit; the numbers here are from the second run** (section 6). The synthetic tests had not shown them because their data did not have the shape of the real tables:
   - **A1 (m1):** DevLake's GraphQL path stores the author of a bot's PR without `[bot]` (`pull_requests.author_name` is `cursor`, `claude`, `copilot-swe-agent`) while `accounts.user_name` is `cursor[bot]`, `claude[bot]`, `Copilot`. 43 PRs had lost the m1 mark. m1 now reads the account of the PR author (the same correction was made in U1's rules 1 and 2).
   - **A2 (m4, m5):** in the real DevLake `commits.message` is a `longblob` (the test schema had `LONGTEXT`), so `LOWER()` and `REGEXP_LIKE` were case-sensitive and the usual `Co-Authored-By: Claude` line was not found (0 of the 9 PRs that have an m4 mark in GitHub's data). The text is now converted with `CONVERT(... USING utf8mb4)` first: 4 of the 9 are found.
-- (a) = 0 PRs (first run: 43), (b) = 0, (c) = 5 PRs (all on m4: no commit message in DevLake), (d) = 0. A message could be read for 45 of the 275 PRs opened in the period (section 5): this is a lack of data in DevLake and stays. Mutant M3 (section 8) is caught: 28 PRs differ on time to first review.
+- (a) = 0 PRs (first run: 43), (b) = 0, (c) = 5 PRs (all on m4: the messages of the PR's branch commits are not in DevLake), (d) = 0. The message of a branch commit could be read for 45 of the 275 PRs opened in the period, and for 17 of the 234 PRs created in the period and merged (section 5): this is a lack of data in DevLake and stays. Mutant M3 (section 8) is caught: 28 PRs differ on time to first review.
 - The seven checks of ADR 0003 on a real DevLake are in section 9; the importer works on the real tables (102 rows written).
 
 ## 2. Repositories and how they were chosen
@@ -37,7 +37,7 @@ Step 8 ranked the 169 by the number of PRs in the period; these two are the firs
 Two departures from the specification, found before this trip and kept as they are:
 
 1. **The search was a sample for the biggest tools.** The GitHub search API returns at most 1,000 hits per query; for tools with more hits in a month, the search was split by day and only the first pages of each day were read (copilot-swe-agent 24.8% of the created hits, devin 37.7%, cursor 46.5%, claude 68.1%). The candidate list is therefore not complete for these tools; the PR counts of the chosen repositories were counted per repository and are not a sample.
-2. **The import took only three Data Entities.** The first import (all entities) was stopped: the CI part of sanity-io/cli has 82,245 workflow runs (DevLake asks for the jobs of a run one run at a time), more than 16 hours at 5,000 calls an hour. The Scope Config `u4-code-review-only` selects `CODE`, `CODEREVIEW`, `CROSS` (Source Code Management, Code Review, Cross Domain). The metrics use no CI or issue table. The second import (pipeline #2, 7 min 43 s) is the one compared.
+2. **The import took only three Data Entities.** The first import (all entities) was stopped: the CI part of sanity-io/cli has 82,245 workflow runs (DevLake asks for the jobs of a run one run at a time), more than 16 hours at 5,000 calls an hour. The Scope Config `u4-code-review-only` selects `CODE`, `CODEREVIEW`, `CROSS` (Source Code Management, Code Review, Cross Domain). The metrics use no CI or issue table. The workflow-run count that `plan` of `tools/devlake_configure.py` prints is the `total_count` of GitHub's API; for sanity-io/cli it showed 40,000 while DevLake got 82,245 runs, so that count can come out smaller than the real number and is not an upper bound. The second import (pipeline #2, 7 min 43 s) is the one compared.
 
 ## 3. Environment and times
 
@@ -49,7 +49,7 @@ Two departures from the specification, found before this trip and kept as they a
 | Data Time Range | from 2026-05-31T15:00:00Z (2026-06-01 00:00 Japan time); frequency Manual |
 | Data Entities | `CODE`, `CODEREVIEW`, `CROSS` (deviation 2 above) |
 | import finished (pipeline #2, `TASK_COMPLETED`) | 2026-10-20 17:14:00 UTC |
-| raw data fetched | 2026-10-20 17:17:36 to 17:29:37 UTC, 1,485 REST calls (every list was one page) |
+| raw data fetched | 2026-10-20 17:17:36 to 17:29:39 UTC, 1,485 REST calls (every list was one page) |
 | `GITHUB_PR_EXCLUDELIST` in the DevLake container | not set |
 | rule for class (d) | a PR whose `updated_at` in the raw data is later than 17:14:00 UTC: **0** PRs |
 
@@ -63,7 +63,7 @@ Two departures from the specification, found before this trip and kept as they a
 
 - **Two readings where the specification does not decide** (kept as written before the run): a trailer line (m4, m5) counts when it starts a line and the colon is followed by zero or more spaces or tabs (git-interpret-trailers accepts any number); spaces before the colon and the rule that git reads trailers only from the last paragraph are not followed. For the choice of repositories (rule 7), a person is any account that is not the author and is not of type `Bot` or named `...[bot]`, and reviews were not restricted to the period.
 
-Classes of a difference (SPEC U4 3-3 and 4-3): (a) the SQL is wrong; (b) the independent script is wrong; (c) DevLake lacks the data, only for the causes listed before the run (PR created before the start of the Data Time Range; more than 100 commits or reviews; m4/m5 on a PR without a commit message in DevLake; PRs dropped by `GITHUB_PR_EXCLUDELIST`; comments deleted later); (d) the PR changed between the DevLake import and the raw fetch.
+Classes of a difference (SPEC U4 3-3 and 4-3): (a) the SQL is wrong; (b) the independent script is wrong; (c) DevLake lacks the data, only for the causes listed before the run (PR created before the start of the Data Time Range; more than 100 commits or reviews; m4/m5 on a PR whose branch commits have no message in DevLake; PRs dropped by `GITHUB_PR_EXCLUDELIST`; comments deleted later); (d) the PR changed between the DevLake import and the raw fetch.
 
 ## 5. Result per item
 
@@ -99,12 +99,14 @@ Classes of a difference (SPEC U4 3-3 and 4-3): (a) the SQL is wrong; (b) the ind
 | every item equal | 292 | |
 | (a) SQL is wrong | 0 | |
 | (b) independent script is wrong | 0 | |
-| (c) DevLake lacks the data | 5 (all on m4: no commit message in DevLake) | m4: 5 |
+| (c) DevLake lacks the data | 5 (all on m4: the messages of the branch commits are not in DevLake) | m4: 5 |
 | (d) changed after the import | 0 | |
 
-The tools, modes and ai_used items that differ (1, 1, 1; own markers 1, 1, 1) are consequences of m4 on the same PR (nothing else differs): a PR whose only mark is the m4 line (Claude as a co-author) and whose commit message is not in DevLake is in `everything_else` there.
+The tools, modes and ai_used items that differ (1, 1, 1; own markers 1, 1, 1) are consequences of m4 on the same PR (nothing else differs): a PR whose only mark is the m4 line (Claude as a co-author) and whose branch commits have no message in DevLake is in `everything_else` there.
 
-**The commit message in DevLake.** `check:prs_without_commit_message` = **230** of the 275 PRs opened in the period, so the message could be read for **45** PRs (16.4%). In GitHub's raw data, 8 PRs of the period have no commit message at all. DevLake's `commits` table (filled by DevLake's git extractor, not by the GraphQL collector) has 2,769 rows for 5,213 rows of `pull_request_commits` (read on 2026-10-21).
+**The commit message in DevLake.** m4 and m5 read the messages of the commits of the PR's branch: the commits that `pull_request_commits` lists for the PR, joined to `commits` by sha (ADR 0002, m4; SPEC U2 3-2). `check:prs_without_commit_message` = **230** of the 275 PRs opened in the period, so the message of a branch commit could be read for **45** PRs (16.4%). Of the **234** PRs created in the period and merged, it could be read for **17** (SELECT on the DevLake database, 2026-10-21). In GitHub's raw data, 8 PRs of the period have no commit message at all. DevLake's `commits` table (filled by DevLake's git extractor, not by the GraphQL collector) has 2,769 rows for 5,213 rows of `pull_request_commits` (read on 2026-10-21).
+
+**The merge commit is another matter.** Of the same 234 merged PRs, the merge commit (`pull_requests.merge_commit_sha`) is in `commits` for **226** and is not for 8. The SQL does not look at it, because the definition of m4 is about the commits of the PR's branch, so it is not counted. The 5 class-(c) PRs (sanity-io/cli #1841, #1864, #1911, #1916, #1923) are all merged; their merge commit (one parent, a squash) is in `commits` for all 5, and none of their branch commits is (0 of 3, 0 of 3, 0 of 1, 0 of 3 and 0 of 1). For 2 of them (#1864 and #1916) the message of the merge commit has a `Co-authored-by: Claude` line; it is outside the definition and was not counted (the 3 others have no such line there). Why the branch commits are missing was not checked: the `refs` table has 650 rows, 339 of them not tags (branches `origin/...` besides the default branch), so "only the default branch is cloned" is not what the table shows; how the git extractor chooses its commits was not verified.
 
 **Not triggered in this data:** PRs created before the Data Time Range start: 0; PRs with more than 100 commits or more than 100 reviews: 0; PRs dropped by `GITHUB_PR_EXCLUDELIST`: the variable is not set; PRs changed after the import (class (d)): 0.
 
@@ -123,18 +125,20 @@ The first run (SQL of commit 665e049) found two defects in the SQL itself (class
 
 **A1 (m1).** For 43 PRs (`cursor` 33, `claude` 8, `copilot-swe-agent` 2) GitHub's REST login of the author is the bot's login with `[bot]` (type `Bot`), and DevLake's `pull_requests.author_name` is the login without it. The `accounts` row of `pull_requests.author_id` has the `[bot]` form for `cursor` and `claude` (`is_bot = 1`) and `Copilot` for `copilot-swe-agent`; none of the 1,604 PRs is without an account row. The m1 patterns of the identities list are written for the REST form, so they never matched `author_name`; 4 PRs (2 `copilot`, 2 `cursor`; no other mark) were in `everything_else` instead of their tool. **Fix:** m1 matches the login of the account (`accounts.user_name`); `pull_requests.author_name` only when there is no account row. A `[bot]` made optional in the pattern was not used: a person named `cursor` or `claude` would be taken for an agent. U1's rules 1 and 2 had the same form and got the same fix (U1's values on this data are identical before and after: all 14 `copilot-swe-agent` PRs carry a `copilot/` branch). The review-agent mark m6 already read `accounts` and agreed with GitHub on all 297 PRs in the first run (2 PRs have it).
 
-**A2 (m4, m5).** `information_schema` says `commits.message` is `longblob` with no collation. On the commit of PR sanity-io/cli #1863 in the first run, `LOCATE('Co-Authored-By', message)` found the line and `LOCATE('co-authored-by', LOWER(message))` did not; on all rows of `commits` the m4 pattern found 0. m5 (`Made-with: Cursor`) has the same form; there is no PR with an m5 line in this data, so it is not measured on real data (its scene is in the synthetic tests, whose commit text is now a LONGBLOB too). **Fix:** `CONVERT(commits.message USING utf8mb4)` before `LOWER()` and `REGEXP_LIKE`; `tests/schema_mysql.sql` has `commits.message LONGBLOB`. Of the 9 PRs with an m4 line in GitHub's data, 4 are now found and 5 have no commit message in DevLake (class (c), section 5).
+**A2 (m4, m5).** `information_schema` says `commits.message` is `longblob` with no collation. On the commit of PR sanity-io/cli #1863 in the first run, `LOCATE('Co-Authored-By', message)` found the line and `LOCATE('co-authored-by', LOWER(message))` did not; on all rows of `commits` the m4 pattern found 0. m5 (`Made-with: Cursor`) has the same form; there is no PR with an m5 line in this data, so it is not measured on real data (its scene is in the synthetic tests, whose commit text is now a LONGBLOB too). **Fix:** `CONVERT(commits.message USING utf8mb4)` before `LOWER()` and `REGEXP_LIKE`; `tests/schema_mysql.sql` has `commits.message LONGBLOB`. Of the 9 PRs with an m4 line in GitHub's data, 4 are now found and 5 have no message of a branch commit in DevLake (class (c), section 5).
 
 ## 7. Group values
 
 Group means, medians and counts from the SQL on the real DevLake, both repositories together (minutes, whole minutes cut toward zero; TTFR = time to first review; size = additions + deletions). These values are from the corrected SQL (second run, section 6).
+
+**Rule for the cells:** a mean or median whose count n is 1 or 2 is written `(hidden, n<3)` and the count stays (n = TTFR n for the time to first review, PRs merged for time in review and cycle time, PRs opened for size, PRs with a reaction for U1), so that the time or size of a single PR cannot be read back from a group value. A count of 0 is written `-`. 7 cells are hidden in the tables below.
 
 Swarmia-aligned markers (`include_own_markers = 0`), tool groups:
 
 | group | PRs opened | TTFR n | TTFR mean | TTFR median | PRs merged | time in review mean | median | cycle time mean | median | size median |
 |---|---|---|---|---|---|---|---|---|---|---|
 | tool:claude | 8 | 4 | 5106.8 | 7 | 4 | 5106.8 | 7 | 5291.2 | 44 | 83 |
-| tool:copilot | 2 | 0 | - | - | 3 | 41517.0 | 62144 | 41517.7 | 62144 | 689 |
+| tool:copilot | 2 | 0 | - | - | 3 | 41517.0 | 62144 | 41517.7 | 62144 | (hidden, n<3) |
 | tool:cursor | 70 | 29 | 570.7 | 549 | 56 | 4056.8 | 549 | 4468.2 | 550 | 466 |
 | tool:everything_else | 195 | 89 | 1606.4 | 171 | 182 | 4742.1 | 805 | 5488.5 | 997 | 218 |
 
@@ -148,7 +152,7 @@ Mode groups:
 | mode:ai_used | 80 | 33 | 1120.5 | 543 | 63 | 5907.2 | 549 | 6284.7 | 550 | 413 |
 | mode:cloud_agent | 53 | 33 | 1120.5 | 543 | 41 | 5197.7 | 254 | 5730.4 | 256 | 211 |
 | mode:everything_else | 195 | 89 | 1606.4 | 171 | 182 | 4742.1 | 805 | 5488.5 | 997 | 218 |
-| mode:review_agent | 0 | 0 | - | - | 2 | 62236.5 | 62144 | 62237.5 | 62144 | - |
+| mode:review_agent | 0 | 0 | - | - | 2 | (hidden, n<3) | (hidden, n<3) | (hidden, n<3) | (hidden, n<3) | - |
 
 With this repo's own markers added (`include_own_markers = 1`), tool groups:
 
@@ -156,7 +160,7 @@ With this repo's own markers added (`include_own_markers = 1`), tool groups:
 |---|---|---|---|---|---|---|---|---|---|---|
 | tool:claude | 8 | 4 | 5106.8 | 7 | 4 | 5106.8 | 7 | 5291.2 | 44 | 83 |
 | tool:codex | 6 | 4 | 46.0 | 17 | 4 | 46.0 | 17 | 295.8 | 32 | 64 |
-| tool:copilot | 2 | 0 | - | - | 3 | 41517.0 | 62144 | 41517.7 | 62144 | 689 |
+| tool:copilot | 2 | 0 | - | - | 3 | 41517.0 | 62144 | 41517.7 | 62144 | (hidden, n<3) |
 | tool:cursor | 70 | 29 | 570.7 | 549 | 56 | 4056.8 | 549 | 4468.2 | 550 | 466 |
 | tool:everything_else | 189 | 85 | 1679.9 | 186 | 178 | 4847.6 | 912 | 5605.2 | 1063 | 218 |
 
@@ -164,7 +168,7 @@ U1 (agents of U1, PRs opened in the period; (1) = first human reaction, (1B) = t
 
 | agent | PRs | with a reaction | median (1) | with a reaction not by an assignee | median (1B) |
 |---|---|---|---|---|---|
-| copilot | 2 | 2 | 0 | 0 | - |
+| copilot | 2 | 2 | (hidden, n<3) | 0 | - |
 | devin | 0 | 0 | - | 0 | - |
 | codex | 6 | 4 | 17 | 4 | 17 |
 | claude | 0 | 0 | - | 0 | - |
@@ -172,7 +176,7 @@ U1 (agents of U1, PRs opened in the period; (1) = first human reaction, (1B) = t
 | other_bot | 68 | 52 | 81 | 52 | 81 |
 | no_marker | 158 | 46 | 640 | 46 | 640 |
 
-Checks of these tables. Compared as they are (the group of every PR from GitHub's raw data against the group of the SQL), 208 of 289 (parity markers) and 210 of 291 (own markers) group values of both repositories together are equal (counts, means, medians, size shares, weekly counts, outcomes); alliance-hq alone: 284 of 284 and 284 of 284; sanity-io/cli alone: 211 of 287 and 211 of 289; all 63 U1 group values of each of the three sets. **The 81 and 81 values that differ all come from the one PR whose m4 line is not in DevLake** (class (c): its group is `claude` in GitHub's data and `everything_else` in DevLake). To show that, the independent calculation was run again with the tool and mode group of every PR taken from DevLake's `pr_classification` (only that PR changes): then 289 of 289 (parity) and 291 of 291 (own) are equal for both repositories together, 284 of 284 and 284 of 284 for alliance-hq, 287 of 287 and 289 of 289 for sanity-io/cli. So the means, medians, counts and weekly counts of the SQL are right given the marks.
+Checks of these tables. Compared as they are (the group of every PR from GitHub's raw data against the group of the SQL), 208 of 289 (parity markers) and 210 of 291 (own markers) group values of both repositories together are equal (counts, means, medians, size shares, weekly counts, outcomes); alliance-hq alone: 284 of 284 and 284 of 284; sanity-io/cli alone: 211 of 287 and 211 of 289; all 63 U1 group values of each of the three sets. **The 81 and 81 values that differ all come from the one PR whose m4 line (in a branch commit) is not in DevLake** (class (c): its group is `claude` in GitHub's data and `everything_else` in DevLake). To show that, the independent calculation was run again with the tool and mode group of every PR taken from DevLake's `pr_classification` (only that PR changes): then 289 of 289 (parity) and 291 of 291 (own) are equal for both repositories together, 284 of 284 and 284 of 284 for alliance-hq, 287 of 287 and 289 of 289 for sanity-io/cli. So the means, medians, counts and weekly counts of the SQL are right given the marks.
 
 ## 8. The comparison can catch a wrong SQL (mutant M3)
 
@@ -495,7 +499,7 @@ One row per PR: repo and number, the tool group of the independent calculation (
 ## 11. Reproduce
 
 1. Start DevLake from the release's compose file, create the GitHub connection, run `python tools/devlake_configure.py apply ...` (`docs/devlake_configure.md`).
-2. Fetch the five raw lists of every compared PR with `gh api` (read-only), run the independent script on them.
+2. Fetch the five raw lists of every compared PR with `gh api` (read-only), run the independent script on them. The independent script and the raw data are outside this repository, and the raw data contains people's information (logins, names, e-mail addresses), so they are not published; the per-PR table in section 10 and the group tables in section 7 are what is published of that run.
 3. `python tools/run_on_devlake.py --compose-dir <folder of the compose file> --out-dir <dir> --sql sql/mysql/ai_impact_parity.sql` (and `--sql sql/mysql/checks/per_pr.sql --common-from sql/mysql/ai_impact_parity.sql`, `--include-own-markers 1`, and the U1 files).
 4. Run `python importer/github_pr_assignees.py` per repo and feed the `.sql` (docs/importer.md) before the U1 per-PR file is read.
 
