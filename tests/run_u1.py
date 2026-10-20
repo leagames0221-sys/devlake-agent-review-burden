@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Run the U1 metric SQL against a throw-away MySQL 8 container and compare with expected_u1.json.
 
-Steps: start a fresh container (public image from Docker Hub) -> load schema_mysql.sql and
+Steps: start a fresh container (public image from Docker Hub, started with the same character set
+and collation as DevLake's own compose file: utf8mb4 / utf8mb4_bin) -> load schema_mysql.sql and
 fixture_u1.sql -> run each "-- @metric" block of sql/mysql/agent_review_burden.sql (appended to the
 "-- @common" block, Grafana macros replaced by fixed values) -> compare -> stop and remove the
 container (also when something fails).
@@ -89,7 +90,8 @@ def apply_macros(text):
 def same(expected, got):
     if expected is None or got is None:
         return expected is None and got is None
-    return abs(float(expected) - float(got)) < 1e-9
+    # 1e-4: MySQL AVG() returns 4 decimals (2/3 -> 0.6667).
+    return abs(float(expected) - float(got)) < 1e-4
 
 
 def main():
@@ -118,7 +120,9 @@ def main():
             return 2
         print("docker server %s, image %s" % (info.stdout.decode().strip(), a.image))
         docker("run", "-d", "--name", name, "-e", "MYSQL_ROOT_PASSWORD=" + PASSWORD,
-               "-e", "MYSQL_DATABASE=" + DB, a.image, timeout=1800)
+               "-e", "MYSQL_DATABASE=" + DB, a.image,
+               # DevLake's docker-compose-dev-mysql.yml (tag v1.0.3-beta18, line 33)
+               "--character-set-server=utf8mb4", "--collation-server=utf8mb4_bin", timeout=1800)
         state["started"] = True
         # The official image first runs a temporary server without TCP; a TCP ping succeeds only on the real one.
         for _ in range(120):
@@ -134,6 +138,11 @@ def main():
 
         mysql(name, (ROOT / "tests" / "schema_mysql.sql").read_text(encoding="utf-8"))
         mysql(name, (ROOT / "tests" / "fixture_u1.sql").read_text(encoding="utf-8"))
+        coll = mysql(name, "SELECT @@character_set_server AS character_set_server, @@collation_server AS collation_server, "
+                           "@@collation_database AS collation_database, "
+                           "(SELECT table_collation FROM information_schema.tables WHERE table_schema = 'lake' "
+                           "AND table_name = 'pull_requests') AS pull_requests_table_collation")
+        print("collation: " + ", ".join("%s=%s" % (k, v) for k, v in zip(coll[0], coll[1][0])))
         cnt = mysql(name, "SELECT (SELECT COUNT(*) FROM pull_requests) AS prs, "
                           "(SELECT COUNT(*) FROM pull_request_comments) AS comments, "
                           "(SELECT COUNT(*) FROM accounts) AS accounts, "

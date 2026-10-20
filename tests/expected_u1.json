@@ -1,15 +1,15 @@
 {
- "_comment": "Expected values fixed by the designer (SPEC U1 section 5), computed by hand. cursor has no PR: rows are returned with pr_count 0 and NULL (null) medians. reacted_excl_assignee is the count that goes with the designer's metric-1B medians.",
+ "_comment": "Expected values computed by hand (the group lists are in the header of fixture_u1.sql). cursor has no PR: rows are returned with pr_count 0 and NULL (null) medians. reacted_excl_assignee is the count that goes with the metric-1B medians. changes_requested_ratio 2/3 is compared with a tolerance of 1e-4 because MySQL AVG returns 4 decimals.",
  "period": "2026-03-01..2026-03-31",
  "repo": "github:GithubRepo:1:1",
  "metrics": {
   "m1_first_human_reaction": {
    "copilot": {
-    "pr_count": 2,
-    "reacted": 1,
+    "pr_count": 3,
+    "reacted": 2,
     "median_minutes": 30,
-    "reacted_excl_assignee": 1,
-    "median_minutes_excl_assignee": 120
+    "reacted_excl_assignee": 2,
+    "median_minutes_excl_assignee": 60
    },
    "devin": {
     "pr_count": 1,
@@ -26,10 +26,10 @@
     "median_minutes_excl_assignee": 120
    },
    "claude": {
-    "pr_count": 2,
-    "reacted": 2,
+    "pr_count": 3,
+    "reacted": 3,
     "median_minutes": 20,
-    "reacted_excl_assignee": 2,
+    "reacted_excl_assignee": 3,
     "median_minutes_excl_assignee": 20
    },
    "cursor": {
@@ -56,9 +56,9 @@
   },
   "m2_review_burden": {
    "copilot": {
-    "pr_count": 2,
+    "pr_count": 3,
     "median_comments": 1,
-    "median_comments_excl_bots": 0
+    "median_comments_excl_bots": 1
    },
    "devin": {
     "pr_count": 1,
@@ -71,7 +71,7 @@
     "median_comments_excl_bots": 3
    },
    "claude": {
-    "pr_count": 2,
+    "pr_count": 3,
     "median_comments": 1,
     "median_comments_excl_bots": 1
    },
@@ -93,9 +93,9 @@
   },
   "m3_changes_requested": {
    "copilot": {
-    "pr_count": 2,
-    "changes_requested_prs": 1,
-    "changes_requested_ratio": 0.5
+    "pr_count": 3,
+    "changes_requested_prs": 2,
+    "changes_requested_ratio": 0.6666666666666666
    },
    "devin": {
     "pr_count": 1,
@@ -108,7 +108,7 @@
     "changes_requested_ratio": 1
    },
    "claude": {
-    "pr_count": 2,
+    "pr_count": 3,
     "changes_requested_prs": 0,
     "changes_requested_ratio": 0
    },
@@ -130,7 +130,7 @@
   },
   "m4_pr_size": {
    "copilot": {
-    "pr_count": 2,
+    "pr_count": 3,
     "median_size": 40
    },
    "devin": {
@@ -142,7 +142,7 @@
     "median_size": 100
    },
    "claude": {
-    "pr_count": 2,
+    "pr_count": 3,
     "median_size": 10
    },
    "cursor": {
@@ -160,10 +160,10 @@
   },
   "m5_outcome": {
    "copilot": {
-    "pr_count": 2,
+    "pr_count": 3,
     "merged": 1,
     "closed": 1,
-    "open": 0
+    "open": 1
    },
    "devin": {
     "pr_count": 1,
@@ -178,8 +178,8 @@
     "open": 1
    },
    "claude": {
-    "pr_count": 2,
-    "merged": 2,
+    "pr_count": 3,
+    "merged": 3,
     "closed": 0,
     "open": 0
    },

@@ -10,23 +10,36 @@
 --
 -- Median: DevLake has no median function in MySQL, so the same method as the existing
 -- DevLake dashboards is used: max(value) among the rows whose percent_rank() <= 0.5
--- (apache/devlake grafana/dashboards, copied in research/topic2/c1/dash_sql_extract.txt
--- L599-L615: "max(days_deployed) as median_number_of_deployment_days_per_week" ...
--- "WHERE ranks <= 0.5"). With an even number of values this returns the lower of the
--- two middle values. Here percent_rank() is computed per agent (PARTITION BY agent).
+-- (apache/devlake grafana/dashboards/mysql/DORA.json, the panel SQL with
+-- "max(days_deployed) as median_number_of_deployment_days_per_week" and "ranks <= 0.5":
+-- https://github.com/apache/devlake/blob/v1.0.3-beta18/grafana/dashboards/mysql/DORA.json#L236).
+-- With an even number of values this returns the lower of the two middle values.
+-- Here percent_rank() is computed per agent (PARTITION BY agent).
 --
--- Agent groups (first match wins; order is the same as the plan, section 5):
+-- Agent groups (first match wins; the order is the same as in docs/adr/0001-metric-definitions.md):
 --   1 author_name in (Copilot, copilot-swe-agent[bot])        -> copilot
 --   2 author_name = devin-ai-integration[bot]                 -> devin
 --   3 head_ref copilot/ -> copilot   4 codex/ -> codex   5 cursor/ -> cursor
 --   6 devin/ -> devin
 --   7 head_ref claude/  or  description contains "Co-Authored-By: Claude" -> claude
---   8 author is a bot (accounts.is_bot = 1)                   -> other_bot
+--   8 author is a bot (see "Bot" below)                       -> other_bot
 --   9 otherwise                                               -> no_marker
 --
--- Unsent reviews: DevLake stores a review as type 'REVIEW' with status = the GitHub state
--- and leaves the time empty when it was not submitted (backend/plugins/github/tasks/pr_review_convertor.go
--- L92-L97 at tag v1.0.3-beta18). Rows with type 'REVIEW' and status 'PENDING' are removed from every metric.
+-- Bot: an account counts as a bot when accounts.is_bot = 1 OR its user_name is one of the
+-- agent bot names of rules 1 and 2. DevLake sets is_bot when the GitHub user type is "Bot" or
+-- the login ends in "[bot]"
+-- (https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github/tasks/account_convertor.go#L150).
+-- The user type comes from GET /users/{login}, and "Copilot" answers 404 there, so on the REST
+-- path the account "Copilot" is stored with is_bot = 0. The name list closes that gap.
+--
+-- Unsent reviews: DevLake already drops reviews in state PENDING when it extracts them
+-- (REST: https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github/tasks/pr_review_extractor.go#L72 ,
+-- GraphQL: https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github_graphql/tasks/pr_extractor.go#L101 ),
+-- so normally no such row reaches pull_request_comments. The condition below is a safeguard for
+-- data that came in another way: it removes rows with type 'REVIEW' and status 'PENDING' from every
+-- metric. The converter stores a review with Type "REVIEW", Status = the GitHub state and, for a
+-- review without a submit time, no time
+-- (https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github/tasks/pr_review_convertor.go#L91-L96).
 
 -- @common
 WITH agents AS (
@@ -37,6 +50,15 @@ WITH agents AS (
   UNION ALL SELECT 'cursor', 5
   UNION ALL SELECT 'other_bot', 6
   UNION ALL SELECT 'no_marker', 7
+),
+acct AS (
+  SELECT
+    a.id,
+    a.user_name,
+    CASE WHEN COALESCE(a.is_bot, 0) = 1
+           OR a.user_name IN ('Copilot', 'copilot-swe-agent[bot]', 'devin-ai-integration[bot]')
+         THEN 1 ELSE 0 END AS is_bot                                                         -- bot by flag or by agent name
+  FROM accounts a
 ),
 pr_base AS (
   SELECT
@@ -58,7 +80,7 @@ pr_base AS (
       ELSE 'no_marker'                                                                      -- rule 9
     END AS agent
   FROM pull_requests pr
-  LEFT JOIN accounts au ON au.id = pr.author_id
+  LEFT JOIN acct au ON au.id = pr.author_id
   WHERE $__timeFilter(pr.created_date)
     AND pr.base_repo_id IN (${repo_id})
 ),
@@ -72,8 +94,8 @@ valid_comments AS (
     COALESCE(ca.is_bot, 0) AS is_bot
   FROM pull_request_comments c
   JOIN pr_base p ON p.id = c.pull_request_id
-  LEFT JOIN accounts ca ON ca.id = c.account_id
-  WHERE NOT (c.type = 'REVIEW' AND COALESCE(c.status, '') = 'PENDING')                      -- unsent reviews out
+  LEFT JOIN acct ca ON ca.id = c.account_id
+  WHERE NOT (c.type = 'REVIEW' AND COALESCE(c.status, '') = 'PENDING')                      -- safeguard: unsent reviews out
 ),
 pr_facts AS (
   SELECT
@@ -156,6 +178,8 @@ LEFT JOIN (
 ORDER BY g.sort_no
 
 -- @metric m3_changes_requested
+-- A review that was dismissed later has the state DISMISSED in GitHub; DevLake stores the state
+-- as it is (pr_review_convertor.go#L92), so a dismissed "changes requested" is not counted here.
 SELECT
   g.agent,
   COALESCE(s.pr_count, 0) AS pr_count,

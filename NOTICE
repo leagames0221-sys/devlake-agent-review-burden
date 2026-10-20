@@ -2,14 +2,22 @@ devlake-agent-review-burden
 Copyright (c) 2026 leagames0221-sys. Licensed under the MIT License (see LICENSE).
 
 This repository contains material derived from Apache DevLake
-(https://github.com/apache/devlake), which is licensed under the Apache License 2.0.
-Apache DevLake (incubating): Copyright 2022-2026 The Apache Software Foundation.
+(https://github.com/apache/devlake), which is licensed under the Apache License 2.0
+(full text in LICENSE-APACHE-2.0). The NOTICE of Apache DevLake at tag v1.0.3-beta18
+reads:
 
-Derived material and where it comes from:
+  Apache DevLake (incubating)
+  Copyright 2022-2026 The Apache Software Foundation
+
+  This product includes software developed at
+  The Apache Software Foundation (https://www.apache.org/).
+
+Derived material and where it comes from. All links are permalinks to tag v1.0.3-beta18
+of apache/devlake (https://github.com/apache/devlake/blob/v1.0.3-beta18/<path>#L<n>):
 
 1. Table shapes (tests/schema_mysql.sql). Column names and types of the tables
    accounts, pull_requests, pull_request_comments and pull_request_assignees were
-   written from the gorm struct tags in apache/devlake at tag v1.0.3-beta18:
+   written from the gorm struct tags in:
      backend/core/models/domainlayer/code/pull_request.go
      backend/core/models/domainlayer/code/pull_request_comment.go
      backend/core/models/domainlayer/code/pull_request_assignees.go
@@ -17,22 +25,39 @@ Derived material and where it comes from:
      backend/core/models/domainlayer/domainlayer.go
    Only the columns used here are created. The source line of each column is
    written next to it in the file. The Go files were read with the GitHub API;
-   apache/devlake is not cloned and none of its code is included.
+   apache/devlake is not cloned and no Go code is included.
 
 2. Median method (sql/mysql/agent_review_burden.sql). The median is the largest
    value among rows whose percent_rank() is 0.5 or less, the method used by the
-   existing DevLake Grafana dashboards (for example the pattern
+   existing DevLake Grafana dashboards: the pattern
    "max(days_deployed) as median_number_of_deployment_days_per_week" with
-   "ranks <= 0.5" in the DORA dashboard SQL).
+   "ranks <= 0.5" in
+   https://github.com/apache/devlake/blob/v1.0.3-beta18/grafana/dashboards/mysql/DORA.json#L236
 
-3. First human reaction (sql/mysql/agent_review_burden.sql). Excluding the PR
-   author and bots follows the approach of DevLake's change lead time calculator
-   (backend/plugins/dora/tasks/change_lead_time_calculator.go, the query that uses
-   "AND COALESCE(acc2.is_bot, false) = false").
+3. First human reaction (sql/mysql/agent_review_burden.sql). The author-exclusion
+   condition "pr.author_id IS NULL OR pr.author_id = '' OR comment.account_id != pr.author_id"
+   is adapted from the DevLake change lead time calculator, and the bot exclusion
+   follows its "COALESCE(acc2.is_bot, false) = false":
+   https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/dora/tasks/change_lead_time_calculator.go#L252-L253
 
 4. How reviews are stored (type REVIEW, status = GitHub review state, no time for
-   unsent reviews) is read from backend/plugins/github/tasks/pr_review_convertor.go
-   at the same tag (lines 92-97); the SQL relies on this behaviour but does not copy code.
+   a review without a submit time) is read from
+   https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github/tasks/pr_review_convertor.go#L91-L96
+   The SQL relies on this behaviour; it does not copy the code.
+
+5. Unsent (PENDING) reviews. DevLake drops them when it extracts reviews (REST:
+   https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github/tasks/pr_review_extractor.go#L72
+   GraphQL:
+   https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github_graphql/tasks/pr_extractor.go#L101 ).
+   The condition in the SQL that removes them is a safeguard, not the main filter.
+
+6. Bot flag. DevLake sets accounts.is_bot when the GitHub user type is "Bot" or the
+   login ends in "[bot]":
+   https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github/tasks/account_convertor.go#L150
+
+7. Test database settings (tests/run_u1.py). The test MySQL is started with
+   --character-set-server=utf8mb4 --collation-server=utf8mb4_bin, the options in
+   https://github.com/apache/devlake/blob/v1.0.3-beta18/docker-compose-dev-mysql.yml#L33
 
 Apache DevLake's own NOTICE and license terms apply to the parts above:
 https://www.apache.org/licenses/LICENSE-2.0
