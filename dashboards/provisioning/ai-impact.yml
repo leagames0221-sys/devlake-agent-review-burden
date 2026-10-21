@@ -1,0 +1,21 @@
+# Grafana "provisioning" file for the dashboard of this repo (U5, docs/dashboard.md, ADR 0004).
+# It is a provider of its own: DevLake's own provider file (provisioning/dashboards/dashboard.yml in the image) is not touched, and the path
+# below is outside DevLake's /etc/grafana/dashboards, so the two providers never read the same json.
+# Shape of the file: Grafana's page "Provision Grafana", section Dashboards (https://grafana.com/docs/grafana/latest/administration/provisioning/); the fields and
+# their values follow DevLake's dashboard.yml (https://github.com/apache/devlake/blob/v1.0.3-beta18/grafana/provisioning/dashboards/dashboard.yml).
+# tools/grafana_install.py mounts this file read-only at /etc/grafana/provisioning/dashboards/ai-impact.yml and the folder
+# dashboards/json/ (which holds ai-impact.json and nothing else) read-only at /etc/grafana/ai-impact.
+apiVersion: 1
+
+providers:
+- name: ai-impact
+  orgId: 1
+  folder: 'AI impact'
+  type: file
+  disableDeletion: false
+  editable: true
+  updateIntervalSeconds: 5
+  allowUiUpdates: false
+  options:
+    path: /etc/grafana/ai-impact
+    foldersFromFilesStructure: false

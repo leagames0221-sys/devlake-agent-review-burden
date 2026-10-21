@@ -1,6 +1,6 @@
 -- AI impact metrics defined as Swarmia defines them, from Apache DevLake domain-layer tables (MySQL 8).
 -- Definitions, sources (file:line of the saved Swarmia pages) and every place where the source text
--- does not decide are in docs/adr/0002-swarmia-parity-definitions.md (rows D1..D14). Agent identities:
+-- does not decide are in docs/adr/0002-swarmia-parity-definitions.md (rows D1..D17). The dashboard variables: docs/adr/0004-grafana-dashboard.md. Agent identities:
 -- docs/agent_identities.md.
 --
 -- File layout (read by tests/run_u1.py; a Grafana panel pastes @common + one @metric), same as U1:
@@ -12,7 +12,13 @@
 --   $__timeFilter(pr.created_date)   the dashboard time range, on the time the PR was opened
 --   $__timeFilter(pr.merged_date)    the same range, on the time the PR was merged
 --   ${repo_id}                       the repo variable
---   ${include_own_markers}           0 = only Swarmia's markers (default), 1 = also the markers of U1
+-- Text variables of the dashboard are written ${name:sqlstring} (Grafana quotes each value and doubles a ' in it; ADR 0004), never bare:
+--   ${include_own_markers:sqlstring} = '1'   '0' = only Swarmia's markers (default), '1' = also the markers of U1
+--   ${tools:sqlstring}                the AI tools that are included in the comparison (default: all)
+--   ${modes:sqlstring}                the modes that are included: cloud, assist, review (default: all)
+--   ${first_reaction:sqlstring}       'review' (default) = Time to first review ends at the first human review; 'any' = at the first human
+--                                      reaction of U1's kind (ADR 0002 D16)
+--   ${comparison:sqlstring}           which rows a dashboard panel shows (tools, modes, ai_used); the panels use it, this file does not
 -- The test runner replaces them with fixed values (2026-03-01 .. 2026-03-31, one repo).
 --
 -- Marks (every mark is checked for every PR; the first hit does not stop the others):
@@ -20,7 +26,10 @@
 --   m3 any commit author is an AI tool   m4 a commit message has a Co-authored-by line of an AI tool
 --   m5 a commit message has a Made-with: Cursor line      m6 a review row is written by a review agent
 --   x1 head_ref prefix (copilot/ codex/ cursor/ devin/ claude/)   x2 PR body has Co-Authored-By: Claude
--- x1 and x2 are U1's own markers; they are used only when ${include_own_markers} = 1.
+-- x1 and x2 are U1's own markers; they are used only when ${include_own_markers:sqlstring} = '1'.
+-- The selection of the dashboard is made on the marks (marks_sel): a mark is kept when its tool is in the included tools and the mode that
+-- the mark gives (m1, m2 -> cloud; m6 -> review; m3, m4, m5, x1, x2 -> assist) is in the included modes. The identities are NOT filtered:
+-- they also decide who is a bot (acct) and which review rows are skipped, which must not depend on the selection (ADR 0002 D17).
 -- Modes: cloud_agent = m1 or m2; ai_assisted = m3, m4, m5 (and x1, x2); review_agent = m6;
 -- ai_used = any of the three. A PR may be in several tools and several modes.
 --
@@ -64,9 +73,11 @@ WITH identities(tool, mode, field, pattern) AS (
   UNION ALL SELECT 'macroscope', 'review', 'review_author', '^macroscopeapp\\[bot\\]$'
   UNION ALL SELECT 'qodo', 'cloud', 'pr_author', '^qodo-code-review\\[bot\\]$'
   UNION ALL SELECT 'qodo', 'review', 'review_author', '^qodo-code-review\\[bot\\]$'
+  -- CUSTOM-TOOLS-INSERT-POINT: tools/build_dashboard.py puts the rows of --custom-tools on the lines after this one (docs/dashboard.md)
 ),
 all_groups AS (
-  SELECT DISTINCT CONCAT('tool:', tool) AS grp FROM identities
+  -- the tool rows of the selected tools only (an excluded tool has no row on the dashboard)
+  SELECT DISTINCT CONCAT('tool:', tool) AS grp FROM identities WHERE tool IN (${tools:sqlstring})
   UNION ALL SELECT 'tool:everything_else'
   UNION ALL SELECT 'mode:cloud_agent'
   UNION ALL SELECT 'mode:ai_assisted'
@@ -133,10 +144,24 @@ human_reviews AS (
     AND c.created_date IS NOT NULL
     AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)
 ),
+human_reactions AS (
+  -- ADR 0002 D16: the rows of people that are U1's first human reaction: a review row, a NORMAL comment or a line comment (DIFF); unsent
+  -- reviews are already out of valid_comments; not a bot (D11), not the PR author (D3)
+  SELECT c.pull_request_id AS pr_id, c.created_date
+  FROM valid_comments c
+  JOIN pr_base p ON p.id = c.pull_request_id
+  WHERE c.type IN ('REVIEW', 'NORMAL', 'DIFF')
+    AND c.is_bot = 0
+    AND c.created_date IS NOT NULL
+    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)
+),
 first_review AS (
-  -- D2: the first submitted review of any state (approved, changes requested, commented, dismissed)
+  -- D2: the first submitted review of any state (approved, changes requested, commented, dismissed).
+  -- D16: when the dashboard variable first_reaction is 'any', the end of the wait is the first human reaction of any of the three kinds
   SELECT pr_id, MIN(created_date) AS at_time
-  FROM human_reviews
+  FROM (SELECT pr_id, created_date FROM human_reviews WHERE ${first_reaction:sqlstring} <> 'any'
+        UNION ALL
+        SELECT pr_id, created_date FROM human_reactions WHERE ${first_reaction:sqlstring} = 'any') r
   GROUP BY pr_id
 ),
 final_approval AS (
@@ -200,8 +225,8 @@ marks AS (
   SELECT pc.pr_id, i.tool, 'm4'
   FROM pr_commit pc
   JOIN identities i ON i.mode IN ('cloud', 'assist') AND i.field = 'coauthor'
-   AND (REGEXP_LIKE(LOWER(pc.message), CONCAT('^co-authored-by:[ \\t]*', i.pattern), 'm')
-     OR REGEXP_LIKE(LOWER(pc.message), CONCAT('(^"?|\\\\n)co-authored-by:[ \\t]*', i.pattern)))
+   AND (REGEXP_LIKE(LOWER(pc.message), CONCAT('^co-authored-by:[ \\t]*(?:', i.pattern, ')'), 'm')
+     OR REGEXP_LIKE(LOWER(pc.message), CONCAT('(^"?|\\\\n)co-authored-by:[ \\t]*(?:', i.pattern, ')')))
   UNION
   -- m5: a "Made-with: Cursor" line, at the start of a line
   SELECT pc.pr_id, 'cursor', 'm5'
@@ -223,26 +248,36 @@ marks AS (
         UNION ALL SELECT 'cursor/', 'cursor'
         UNION ALL SELECT 'devin/', 'devin'
         UNION ALL SELECT 'claude/', 'claude') x ON p.head_ref LIKE CONCAT(x.prefix, '%')
-  WHERE ${include_own_markers} = 1
+  WHERE ${include_own_markers:sqlstring} = '1'
   UNION
   -- x2 (own marker): the PR body has Co-Authored-By: Claude
   SELECT p.id, 'claude', 'x2'
   FROM pr_base p
-  WHERE ${include_own_markers} = 1 AND LOWER(p.description) LIKE '%co-authored-by: claude%'
+  WHERE ${include_own_markers:sqlstring} = '1' AND LOWER(p.description) LIKE '%co-authored-by: claude%'
+),
+marks_sel AS (
+  -- the selection of the dashboard (ADR 0002 D17), made on the marks of every kind, also m5, x1 and x2 whose tool is written in this file and
+  -- not read from identities: the tool of the mark is included, and the mode that the mark gives is included
+  SELECT m.pr_id, m.tool, m.mark
+  FROM marks m
+  WHERE m.tool IN (${tools:sqlstring})
+    AND CASE WHEN m.mark IN ('m1', 'm2') THEN 'cloud'
+             WHEN m.mark = 'm6' THEN 'review'
+             ELSE 'assist' END IN (${modes:sqlstring})
 ),
 pr_tool AS (
-  SELECT DISTINCT pr_id, tool FROM marks
+  SELECT DISTINCT pr_id, tool FROM marks_sel
 ),
 pr_mode AS (
-  SELECT pr_id, 'cloud_agent' AS mode FROM marks WHERE mark IN ('m1', 'm2')
+  SELECT pr_id, 'cloud_agent' AS mode FROM marks_sel WHERE mark IN ('m1', 'm2')
   UNION
-  SELECT pr_id, 'ai_assisted' FROM marks WHERE mark IN ('m3', 'm4', 'm5', 'x1', 'x2')
+  SELECT pr_id, 'ai_assisted' FROM marks_sel WHERE mark IN ('m3', 'm4', 'm5', 'x1', 'x2')
   UNION
-  SELECT pr_id, 'review_agent' FROM marks WHERE mark = 'm6'
+  SELECT pr_id, 'review_agent' FROM marks_sel WHERE mark = 'm6'
 ),
 pr_cloud_tool AS (
   -- the tools whose cloud agent opened the PR or made its first commit (m1, m2)
-  SELECT DISTINCT pr_id, tool FROM marks WHERE mark IN ('m1', 'm2')
+  SELECT DISTINCT pr_id, tool FROM marks_sel WHERE mark IN ('m1', 'm2')
 ),
 pr_group AS (
   SELECT pr_id, CONCAT('tool:', tool) AS grp FROM pr_tool
@@ -391,7 +426,7 @@ ORDER BY 1
 
 -- @metric batch_size
 -- additions + deletions of PRs opened in the period. Generated files are NOT excluded (see ADR 0002).
--- Buckets as the benchmarks of Swarmia's page: under 200, 200..499, 500 and over.
+-- Buckets as the benchmarks of the page named in ADR 0002 (batch_size): under 200, 200..499, 500 and over.
 SELECT
   ag.grp,
   COALESCE(s.n, 0) AS prs,
@@ -441,11 +476,12 @@ FROM all_groups ag
 WHERE ag.grp LIKE 'tool:%' AND ag.grp <> 'tool:everything_else'
 
 -- @metric pr_classification
--- One row per PR: the marks that hit (mark:tool), the tools, the modes. For checking the classification directly.
+-- One row per PR: the marks that hit (mark:tool), the tools, the modes. For checking the classification directly. These are the marks that are in the
+-- selection of the dashboard (marks_sel, ADR 0002 D17); with every tool and mode selected, all marks that hit.
 SELECT
   CONCAT('pr:', p.id) AS grp,
   (SELECT GROUP_CONCAT(DISTINCT CONCAT(m.mark, ':', m.tool) ORDER BY m.mark, m.tool SEPARATOR ',')
-     FROM marks m WHERE m.pr_id = p.id) AS marks,
+     FROM marks_sel m WHERE m.pr_id = p.id) AS marks,
   COALESCE((SELECT GROUP_CONCAT(DISTINCT t.tool ORDER BY t.tool SEPARATOR ',')
               FROM pr_tool t WHERE t.pr_id = p.id), 'everything_else') AS tools,
   COALESCE((SELECT GROUP_CONCAT(DISTINCT md.mode ORDER BY md.mode SEPARATOR ',')

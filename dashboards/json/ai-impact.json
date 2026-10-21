@@ -1,0 +1,1932 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "AI ツール別・使い方別の PR の指標。上の選択で比べ方・ツール・使い方・数え方を変えます。読み方は一番下の「この画面の読み方」。",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "panels": [],
+      "title": "AI 利用別の PR 指標",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "mysql",
+        "uid": "devlake-mysql-api"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "grp"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "群"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "merged"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "マージした PR 数"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 1
+      },
+      "id": 11,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "mysql",
+            "uid": "devlake-mysql-api"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH identities(tool, mode, field, pattern) AS (\n  -- tool, mode (cloud | assist | review), field (pr_author | commit_author_name | commit_author_email |\n  -- coauthor | review_author), pattern (lower case). Add or remove rows here per company.\n  -- Basis of each row: docs/agent_identities.md.\n  SELECT 'copilot', 'cloud', 'pr_author', '^(copilot|copilot-swe-agent\\\\[bot\\\\])$'\n  UNION ALL SELECT 'copilot', 'review', 'review_author', '^(copilot|copilot-pull-request-reviewer\\\\[bot\\\\])$'\n  UNION ALL SELECT 'cursor', 'cloud', 'pr_author', '^cursor\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_name', '^cursor agent$'                   -- git name seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_email', '^cursoragent@cursor\\\\.com$'       -- git e-mail seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'claude', 'cloud', 'pr_author', '^claude\\\\[bot\\\\]$'\n  UNION ALL SELECT 'claude', 'cloud', 'commit_author_name', '^claude$'\n  UNION ALL SELECT 'claude', 'assist', 'coauthor', 'claude\\\\b'\n  UNION ALL SELECT 'codex', 'cloud', 'pr_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'codex', 'review', 'review_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'cloud', 'pr_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'review', 'review_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'cloud', 'pr_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'review', 'review_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'cloud', 'pr_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'review', 'review_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'cloud', 'pr_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'review', 'review_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'cloud', 'pr_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'review', 'review_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'cloud', 'pr_author', '^qodo-code-review\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'review', 'review_author', '^qodo-code-review\\\\[bot\\\\]$'\n  -- CUSTOM-TOOLS-INSERT-POINT: tools/build_dashboard.py puts the rows of --custom-tools on the lines after this one (docs/dashboard.md)\n),\nall_groups AS (\n  -- the tool rows of the selected tools only (an excluded tool has no row on the dashboard)\n  SELECT DISTINCT CONCAT('tool:', tool) AS grp FROM identities WHERE tool IN (${tools:sqlstring})\n  UNION ALL SELECT 'tool:everything_else'\n  UNION ALL SELECT 'mode:cloud_agent'\n  UNION ALL SELECT 'mode:ai_assisted'\n  UNION ALL SELECT 'mode:review_agent'\n  UNION ALL SELECT 'mode:ai_used'\n  UNION ALL SELECT 'mode:everything_else'\n),\nacct AS (\n  SELECT\n    a.id,\n    a.user_name,\n    -- bot (D11): the is_bot flag, U1's agent bot names, or a login of the identities list\n    CASE WHEN COALESCE(a.is_bot, 0) = 1\n           OR a.user_name IN ('Copilot', 'copilot-swe-agent[bot]', 'devin-ai-integration[bot]')\n           OR EXISTS (SELECT 1 FROM identities i\n                       WHERE i.field IN ('pr_author', 'review_author')\n                         AND REGEXP_LIKE(LOWER(a.user_name), i.pattern))\n         THEN 1 ELSE 0 END AS is_bot\n  FROM accounts a\n),\npr_base AS (\n  -- every PR that was opened or merged in the period; the metrics pick in_created or in_merged (D12)\n  SELECT\n    pr.id,\n    pr.author_id,\n    -- the login of the PR author: the account row (accounts.user_name, \"cursor[bot]\") when there is one; DevLake's\n    -- GraphQL path stores pull_requests.author_name without \"[bot]\" (\"cursor\"), so that column is used only when the\n    -- account row is missing (ADR 0002 A1)\n    CASE WHEN au.id IS NULL THEN pr.author_name ELSE au.user_name END AS author_login,\n    pr.status,\n    pr.created_date,\n    pr.merged_date,\n    pr.head_ref,\n    pr.description,\n    COALESCE(pr.additions, 0) + COALESCE(pr.deletions, 0) AS size,\n    CASE WHEN $__timeFilter(pr.created_date) THEN 1 ELSE 0 END AS in_created,\n    CASE WHEN $__timeFilter(pr.merged_date) THEN 1 ELSE 0 END AS in_merged\n  FROM pull_requests pr\n  LEFT JOIN accounts au ON au.id = pr.author_id\n  WHERE ($__timeFilter(pr.created_date) OR $__timeFilter(pr.merged_date))\n    AND pr.base_repo_id IN (${repo_id})\n),\nvalid_comments AS (\n  SELECT\n    c.pull_request_id,\n    c.account_id,\n    c.created_date,\n    c.type,\n    c.status,\n    ca.user_name,\n    COALESCE(ca.is_bot, 0) AS is_bot\n  FROM pull_request_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  LEFT JOIN acct ca ON ca.id = c.account_id\n  WHERE NOT (c.type = 'REVIEW' AND COALESCE(c.status, '') = 'PENDING')                       -- unsent reviews out (as in U1)\n),\nhuman_reviews AS (\n  -- review rows of people: not a bot, not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date, c.status\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type = 'REVIEW'\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nhuman_reactions AS (\n  -- ADR 0002 D16: the rows of people that are U1's first human reaction: a review row, a NORMAL comment or a line comment (DIFF); unsent\n  -- reviews are already out of valid_comments; not a bot (D11), not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type IN ('REVIEW', 'NORMAL', 'DIFF')\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nfirst_review AS (\n  -- D2: the first submitted review of any state (approved, changes requested, commented, dismissed).\n  -- D16: when the dashboard variable first_reaction is 'any', the end of the wait is the first human reaction of any of the three kinds\n  SELECT pr_id, MIN(created_date) AS at_time\n  FROM (SELECT pr_id, created_date FROM human_reviews WHERE ${first_reaction:sqlstring} <> 'any'\n        UNION ALL\n        SELECT pr_id, created_date FROM human_reactions WHERE ${first_reaction:sqlstring} = 'any') r\n  GROUP BY pr_id\n),\nfinal_approval AS (\n  -- D9: the last APPROVED review before the merge\n  SELECT hr.pr_id, MAX(hr.created_date) AS at_time\n  FROM human_reviews hr\n  JOIN pr_base p ON p.id = hr.pr_id\n  WHERE hr.status = 'APPROVED' AND p.merged_date IS NOT NULL AND hr.created_date < p.merged_date\n  GROUP BY hr.pr_id\n),\ntool_commits AS (\n  -- ADJUSTMENT POINT (ADR 0002 D15): where the text of a commit of a PR is read from when `commits` has none. The default is the\n  -- tool-layer table of DevLake's GitHub plugin (primary key sha only, no connection column; `message` is the text of the commit as GitHub\n  -- gave it). That table exists only when the GitHub plugin was built (a DevLake built with DEVLAKE_PLUGINS=gitlab,... does not have it): in\n  -- that case replace the line below by an empty list with the same two columns, and the SQL reads `commits` only:\n  --   SELECT CAST(NULL AS CHAR(40)) AS sha, CAST(NULL AS CHAR) AS message FROM (SELECT 1) one WHERE 1 = 0\n  SELECT t.sha, t.message FROM _tool_github_commits t\n),\npr_commit AS (\n  -- commits and tool_commits are joined with LEFT JOIN: a PR whose message is in neither stays in every count\n  SELECT\n    prc.pull_request_id AS pr_id,\n    prc.commit_sha,\n    prc.commit_author_name,\n    prc.commit_author_email,\n    prc.commit_authored_date,\n    -- the text of the commit (ADR 0002 D15): the domain-layer `commits.message` first, then the tool table. commits.message is a longblob in a\n    -- real DevLake (ADR 0002 A2): LOWER() and REGEXP_LIKE() on a binary string are case-sensitive, so the text is converted first. An empty\n    -- text counts as no text (NULLIF), so the tool table is read then, too.\n    COALESCE(NULLIF(CONVERT(cm.message USING utf8mb4), ''), t.message) AS message,\n    -- 1 when the text of this commit came from the tool table (the domain-layer text is missing or empty and the tool table has one)\n    CASE WHEN NULLIF(CONVERT(cm.message USING utf8mb4), '') IS NULL AND t.message IS NOT NULL THEN 1 ELSE 0 END AS from_tool,\n    MIN(prc.commit_authored_date) OVER (PARTITION BY prc.pull_request_id) AS first_commit_at\n  FROM pull_request_commits prc\n  JOIN pr_base p ON p.id = prc.pull_request_id\n  LEFT JOIN commits cm ON cm.sha = prc.commit_sha\n  LEFT JOIN tool_commits t ON t.sha = prc.commit_sha\n),\nmarks AS (\n  -- m1: the PR author is a cloud agent\n  SELECT p.id AS pr_id, i.tool, 'm1' AS mark\n  FROM pr_base p\n  JOIN identities i ON i.mode = 'cloud' AND i.field = 'pr_author' AND REGEXP_LIKE(LOWER(p.author_login), i.pattern)\n  UNION\n  -- m2: the first commit (D10: all commits with the earliest time) is authored by a cloud agent, by name or e-mail\n  SELECT pc.pr_id, i.tool, 'm2'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode = 'cloud'\n   AND pc.commit_authored_date = pc.first_commit_at\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m3: any commit is authored by an AI tool\n  SELECT pc.pr_id, i.tool, 'm3'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist')\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m4: a Co-authored-by line of an AI tool, at the start of a line (real line breaks, or the JSON-string shape)\n  SELECT pc.pr_id, i.tool, 'm4'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist') AND i.field = 'coauthor'\n   AND (REGEXP_LIKE(LOWER(pc.message), CONCAT('^co-authored-by:[ \\\\t]*(?:', i.pattern, ')'), 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), CONCAT('(^\"?|\\\\\\\\n)co-authored-by:[ \\\\t]*(?:', i.pattern, ')')))\n  UNION\n  -- m5: a \"Made-with: Cursor\" line, at the start of a line\n  SELECT pc.pr_id, 'cursor', 'm5'\n  FROM pr_commit pc\n  WHERE REGEXP_LIKE(LOWER(pc.message), '^made-with:[ \\\\t]*cursor\\\\b', 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), '(^\"?|\\\\\\\\n)made-with:[ \\\\t]*cursor\\\\b')\n  UNION\n  -- m6: a review row (REVIEW or a line comment of a review, D13) written by a review agent\n  SELECT c.pull_request_id, i.tool, 'm6'\n  FROM valid_comments c\n  JOIN identities i ON i.mode = 'review' AND i.field = 'review_author' AND REGEXP_LIKE(LOWER(c.user_name), i.pattern)\n  WHERE c.type IN ('REVIEW', 'DIFF')\n  UNION\n  -- x1 (own marker): head_ref prefix\n  SELECT p.id, x.tool, 'x1'\n  FROM pr_base p\n  JOIN (SELECT 'copilot/' AS prefix, 'copilot' AS tool\n        UNION ALL SELECT 'codex/', 'codex'\n        UNION ALL SELECT 'cursor/', 'cursor'\n        UNION ALL SELECT 'devin/', 'devin'\n        UNION ALL SELECT 'claude/', 'claude') x ON p.head_ref LIKE CONCAT(x.prefix, '%')\n  WHERE ${include_own_markers:sqlstring} = '1'\n  UNION\n  -- x2 (own marker): the PR body has Co-Authored-By: Claude\n  SELECT p.id, 'claude', 'x2'\n  FROM pr_base p\n  WHERE ${include_own_markers:sqlstring} = '1' AND LOWER(p.description) LIKE '%co-authored-by: claude%'\n),\nmarks_sel AS (\n  -- the selection of the dashboard (ADR 0002 D17), made on the marks of every kind, also m5, x1 and x2 whose tool is written in this file and\n  -- not read from identities: the tool of the mark is included, and the mode that the mark gives is included\n  SELECT m.pr_id, m.tool, m.mark\n  FROM marks m\n  WHERE m.tool IN (${tools:sqlstring})\n    AND CASE WHEN m.mark IN ('m1', 'm2') THEN 'cloud'\n             WHEN m.mark = 'm6' THEN 'review'\n             ELSE 'assist' END IN (${modes:sqlstring})\n),\npr_tool AS (\n  SELECT DISTINCT pr_id, tool FROM marks_sel\n),\npr_mode AS (\n  SELECT pr_id, 'cloud_agent' AS mode FROM marks_sel WHERE mark IN ('m1', 'm2')\n  UNION\n  SELECT pr_id, 'ai_assisted' FROM marks_sel WHERE mark IN ('m3', 'm4', 'm5', 'x1', 'x2')\n  UNION\n  SELECT pr_id, 'review_agent' FROM marks_sel WHERE mark = 'm6'\n),\npr_cloud_tool AS (\n  -- the tools whose cloud agent opened the PR or made its first commit (m1, m2)\n  SELECT DISTINCT pr_id, tool FROM marks_sel WHERE mark IN ('m1', 'm2')\n),\npr_group AS (\n  SELECT pr_id, CONCAT('tool:', tool) AS grp FROM pr_tool\n  UNION ALL\n  SELECT p.id, 'tool:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_tool t WHERE t.pr_id = p.id)\n  UNION ALL\n  SELECT pr_id, CONCAT('mode:', mode) FROM pr_mode\n  UNION ALL\n  SELECT DISTINCT pr_id, 'mode:ai_used' FROM pr_mode\n  UNION ALL\n  SELECT p.id, 'mode:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_mode m WHERE m.pr_id = p.id)\n),\nfirst_commit AS (\n  SELECT DISTINCT pr_id, first_commit_at FROM pr_commit\n),\npr_facts AS (\n  SELECT\n    p.id,\n    p.status,\n    p.size,\n    p.in_created,\n    p.in_merged,\n    -- time to first review: from the PR being opened (D1) to the first human review\n    TIMESTAMPDIFF(MINUTE, p.created_date, fr.at_time) AS ttfr_min,\n    -- time in review: from the PR being opened (D1) to the final approval, or to the merge (D5); merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, p.created_date, COALESCE(fa.at_time, p.merged_date)) END AS tir_min,\n    -- cycle time: from the first commit or the opening of the PR, whichever is earlier, to the merge; merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, LEAST(p.created_date, COALESCE(fc.first_commit_at, p.created_date)), p.merged_date) END AS cycle_min,\n    CASE WHEN p.merged_date IS NOT NULL THEN YEARWEEK(p.merged_date, 3) END AS yw           -- D6: ISO week, Monday first\n  FROM pr_base p\n  LEFT JOIN first_review fr ON fr.pr_id = p.id\n  LEFT JOIN final_approval fa ON fa.pr_id = p.id\n  LEFT JOIN first_commit fc ON fc.pr_id = p.id\n),\ngrp_vals AS (\n  SELECT g.grp, 'ttfr' AS m, f.ttfr_min AS v\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1 AND f.ttfr_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'tir', f.tir_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.tir_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'cycle', f.cycle_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.cycle_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'size', f.size\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1\n),\ngrp_ranked AS (\n  SELECT grp, m, v, percent_rank() OVER (PARTITION BY grp, m ORDER BY v) AS rk\n  FROM grp_vals\n),\ngrp_stats AS (\n  SELECT grp, m, COUNT(*) AS n, AVG(v) AS mean_v, MAX(CASE WHEN rk <= 0.5 THEN v END) AS median_v\n  FROM grp_ranked\n  GROUP BY grp, m\n), metric AS (\n-- Merged PRs merged in the period. tool:/mode: rows = the period total of the group.\n-- week:<YEARWEEK(merged_date, 3)> rows = the PRs merged in that week, all and per mode.\n-- tool:<name>|week:<YEARWEEK> rows = the PRs of that tool merged in that week (only the combinations that have one).\nSELECT\n  ag.grp,\n  COALESCE(s.merged, 0) AS merged,\n  NULL AS merged_cloud_agent,\n  NULL AS merged_ai_assisted,\n  NULL AS merged_review_agent,\n  NULL AS merged_ai_used,\n  NULL AS merged_everything_else\nFROM all_groups ag\nLEFT JOIN (\n  SELECT g.grp, COUNT(*) AS merged\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1\n  GROUP BY g.grp\n) s ON s.grp = ag.grp\nUNION ALL\nSELECT\n  CONCAT('week:', f.yw),\n  COUNT(*),\n  SUM(CASE WHEN EXISTS (SELECT 1 FROM pr_group g WHERE g.pr_id = f.id AND g.grp = 'mode:cloud_agent') THEN 1 ELSE 0 END),\n  SUM(CASE WHEN EXISTS (SELECT 1 FROM pr_group g WHERE g.pr_id = f.id AND g.grp = 'mode:ai_assisted') THEN 1 ELSE 0 END),\n  SUM(CASE WHEN EXISTS (SELECT 1 FROM pr_group g WHERE g.pr_id = f.id AND g.grp = 'mode:review_agent') THEN 1 ELSE 0 END),\n  SUM(CASE WHEN EXISTS (SELECT 1 FROM pr_group g WHERE g.pr_id = f.id AND g.grp = 'mode:ai_used') THEN 1 ELSE 0 END),\n  SUM(CASE WHEN EXISTS (SELECT 1 FROM pr_group g WHERE g.pr_id = f.id AND g.grp = 'mode:everything_else') THEN 1 ELSE 0 END)\nFROM pr_facts f\nWHERE f.in_merged = 1\nGROUP BY f.yw\nUNION ALL\nSELECT\n  CONCAT(g.grp, '|week:', f.yw),\n  COUNT(*),\n  NULL, NULL, NULL, NULL, NULL\nFROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\nWHERE f.in_merged = 1 AND g.grp LIKE 'tool:%'\nGROUP BY g.grp, f.yw\nORDER BY 1\n)\nSELECT * FROM metric\nWHERE (${comparison:sqlstring} = 'tools' AND grp LIKE 'tool:%' AND grp NOT LIKE '%|%')\n   OR (${comparison:sqlstring} = 'modes' AND grp IN ('mode:cloud_agent', 'mode:ai_assisted', 'mode:review_agent', 'mode:everything_else'))\n   OR (${comparison:sqlstring} = 'ai_used' AND grp IN ('mode:ai_used', 'mode:everything_else'))\nORDER BY grp",
+          "refId": "A"
+        }
+      ],
+      "title": "PR のマージ数（PRs merged）",
+      "type": "table",
+      "description": "期間内にマージした PR の数。1 本の PR が複数の群に数えられることがあります。",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "merged_cloud_agent": true,
+              "merged_ai_assisted": true,
+              "merged_review_agent": true,
+              "merged_ai_used": true,
+              "merged_everything_else": true
+            },
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "mysql",
+        "uid": "devlake-mysql-api"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "grp"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "群"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "prs"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "開いた PR 数"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "n_defined"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "値のある PR 数"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mean_minutes"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "平均"
+              },
+              {
+                "id": "unit",
+                "value": "m"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "median_minutes"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "中央値"
+              },
+              {
+                "id": "unit",
+                "value": "m"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 1
+      },
+      "id": 13,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "mysql",
+            "uid": "devlake-mysql-api"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH identities(tool, mode, field, pattern) AS (\n  -- tool, mode (cloud | assist | review), field (pr_author | commit_author_name | commit_author_email |\n  -- coauthor | review_author), pattern (lower case). Add or remove rows here per company.\n  -- Basis of each row: docs/agent_identities.md.\n  SELECT 'copilot', 'cloud', 'pr_author', '^(copilot|copilot-swe-agent\\\\[bot\\\\])$'\n  UNION ALL SELECT 'copilot', 'review', 'review_author', '^(copilot|copilot-pull-request-reviewer\\\\[bot\\\\])$'\n  UNION ALL SELECT 'cursor', 'cloud', 'pr_author', '^cursor\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_name', '^cursor agent$'                   -- git name seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_email', '^cursoragent@cursor\\\\.com$'       -- git e-mail seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'claude', 'cloud', 'pr_author', '^claude\\\\[bot\\\\]$'\n  UNION ALL SELECT 'claude', 'cloud', 'commit_author_name', '^claude$'\n  UNION ALL SELECT 'claude', 'assist', 'coauthor', 'claude\\\\b'\n  UNION ALL SELECT 'codex', 'cloud', 'pr_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'codex', 'review', 'review_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'cloud', 'pr_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'review', 'review_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'cloud', 'pr_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'review', 'review_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'cloud', 'pr_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'review', 'review_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'cloud', 'pr_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'review', 'review_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'cloud', 'pr_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'review', 'review_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'cloud', 'pr_author', '^qodo-code-review\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'review', 'review_author', '^qodo-code-review\\\\[bot\\\\]$'\n  -- CUSTOM-TOOLS-INSERT-POINT: tools/build_dashboard.py puts the rows of --custom-tools on the lines after this one (docs/dashboard.md)\n),\nall_groups AS (\n  -- the tool rows of the selected tools only (an excluded tool has no row on the dashboard)\n  SELECT DISTINCT CONCAT('tool:', tool) AS grp FROM identities WHERE tool IN (${tools:sqlstring})\n  UNION ALL SELECT 'tool:everything_else'\n  UNION ALL SELECT 'mode:cloud_agent'\n  UNION ALL SELECT 'mode:ai_assisted'\n  UNION ALL SELECT 'mode:review_agent'\n  UNION ALL SELECT 'mode:ai_used'\n  UNION ALL SELECT 'mode:everything_else'\n),\nacct AS (\n  SELECT\n    a.id,\n    a.user_name,\n    -- bot (D11): the is_bot flag, U1's agent bot names, or a login of the identities list\n    CASE WHEN COALESCE(a.is_bot, 0) = 1\n           OR a.user_name IN ('Copilot', 'copilot-swe-agent[bot]', 'devin-ai-integration[bot]')\n           OR EXISTS (SELECT 1 FROM identities i\n                       WHERE i.field IN ('pr_author', 'review_author')\n                         AND REGEXP_LIKE(LOWER(a.user_name), i.pattern))\n         THEN 1 ELSE 0 END AS is_bot\n  FROM accounts a\n),\npr_base AS (\n  -- every PR that was opened or merged in the period; the metrics pick in_created or in_merged (D12)\n  SELECT\n    pr.id,\n    pr.author_id,\n    -- the login of the PR author: the account row (accounts.user_name, \"cursor[bot]\") when there is one; DevLake's\n    -- GraphQL path stores pull_requests.author_name without \"[bot]\" (\"cursor\"), so that column is used only when the\n    -- account row is missing (ADR 0002 A1)\n    CASE WHEN au.id IS NULL THEN pr.author_name ELSE au.user_name END AS author_login,\n    pr.status,\n    pr.created_date,\n    pr.merged_date,\n    pr.head_ref,\n    pr.description,\n    COALESCE(pr.additions, 0) + COALESCE(pr.deletions, 0) AS size,\n    CASE WHEN $__timeFilter(pr.created_date) THEN 1 ELSE 0 END AS in_created,\n    CASE WHEN $__timeFilter(pr.merged_date) THEN 1 ELSE 0 END AS in_merged\n  FROM pull_requests pr\n  LEFT JOIN accounts au ON au.id = pr.author_id\n  WHERE ($__timeFilter(pr.created_date) OR $__timeFilter(pr.merged_date))\n    AND pr.base_repo_id IN (${repo_id})\n),\nvalid_comments AS (\n  SELECT\n    c.pull_request_id,\n    c.account_id,\n    c.created_date,\n    c.type,\n    c.status,\n    ca.user_name,\n    COALESCE(ca.is_bot, 0) AS is_bot\n  FROM pull_request_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  LEFT JOIN acct ca ON ca.id = c.account_id\n  WHERE NOT (c.type = 'REVIEW' AND COALESCE(c.status, '') = 'PENDING')                       -- unsent reviews out (as in U1)\n),\nhuman_reviews AS (\n  -- review rows of people: not a bot, not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date, c.status\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type = 'REVIEW'\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nhuman_reactions AS (\n  -- ADR 0002 D16: the rows of people that are U1's first human reaction: a review row, a NORMAL comment or a line comment (DIFF); unsent\n  -- reviews are already out of valid_comments; not a bot (D11), not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type IN ('REVIEW', 'NORMAL', 'DIFF')\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nfirst_review AS (\n  -- D2: the first submitted review of any state (approved, changes requested, commented, dismissed).\n  -- D16: when the dashboard variable first_reaction is 'any', the end of the wait is the first human reaction of any of the three kinds\n  SELECT pr_id, MIN(created_date) AS at_time\n  FROM (SELECT pr_id, created_date FROM human_reviews WHERE ${first_reaction:sqlstring} <> 'any'\n        UNION ALL\n        SELECT pr_id, created_date FROM human_reactions WHERE ${first_reaction:sqlstring} = 'any') r\n  GROUP BY pr_id\n),\nfinal_approval AS (\n  -- D9: the last APPROVED review before the merge\n  SELECT hr.pr_id, MAX(hr.created_date) AS at_time\n  FROM human_reviews hr\n  JOIN pr_base p ON p.id = hr.pr_id\n  WHERE hr.status = 'APPROVED' AND p.merged_date IS NOT NULL AND hr.created_date < p.merged_date\n  GROUP BY hr.pr_id\n),\ntool_commits AS (\n  -- ADJUSTMENT POINT (ADR 0002 D15): where the text of a commit of a PR is read from when `commits` has none. The default is the\n  -- tool-layer table of DevLake's GitHub plugin (primary key sha only, no connection column; `message` is the text of the commit as GitHub\n  -- gave it). That table exists only when the GitHub plugin was built (a DevLake built with DEVLAKE_PLUGINS=gitlab,... does not have it): in\n  -- that case replace the line below by an empty list with the same two columns, and the SQL reads `commits` only:\n  --   SELECT CAST(NULL AS CHAR(40)) AS sha, CAST(NULL AS CHAR) AS message FROM (SELECT 1) one WHERE 1 = 0\n  SELECT t.sha, t.message FROM _tool_github_commits t\n),\npr_commit AS (\n  -- commits and tool_commits are joined with LEFT JOIN: a PR whose message is in neither stays in every count\n  SELECT\n    prc.pull_request_id AS pr_id,\n    prc.commit_sha,\n    prc.commit_author_name,\n    prc.commit_author_email,\n    prc.commit_authored_date,\n    -- the text of the commit (ADR 0002 D15): the domain-layer `commits.message` first, then the tool table. commits.message is a longblob in a\n    -- real DevLake (ADR 0002 A2): LOWER() and REGEXP_LIKE() on a binary string are case-sensitive, so the text is converted first. An empty\n    -- text counts as no text (NULLIF), so the tool table is read then, too.\n    COALESCE(NULLIF(CONVERT(cm.message USING utf8mb4), ''), t.message) AS message,\n    -- 1 when the text of this commit came from the tool table (the domain-layer text is missing or empty and the tool table has one)\n    CASE WHEN NULLIF(CONVERT(cm.message USING utf8mb4), '') IS NULL AND t.message IS NOT NULL THEN 1 ELSE 0 END AS from_tool,\n    MIN(prc.commit_authored_date) OVER (PARTITION BY prc.pull_request_id) AS first_commit_at\n  FROM pull_request_commits prc\n  JOIN pr_base p ON p.id = prc.pull_request_id\n  LEFT JOIN commits cm ON cm.sha = prc.commit_sha\n  LEFT JOIN tool_commits t ON t.sha = prc.commit_sha\n),\nmarks AS (\n  -- m1: the PR author is a cloud agent\n  SELECT p.id AS pr_id, i.tool, 'm1' AS mark\n  FROM pr_base p\n  JOIN identities i ON i.mode = 'cloud' AND i.field = 'pr_author' AND REGEXP_LIKE(LOWER(p.author_login), i.pattern)\n  UNION\n  -- m2: the first commit (D10: all commits with the earliest time) is authored by a cloud agent, by name or e-mail\n  SELECT pc.pr_id, i.tool, 'm2'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode = 'cloud'\n   AND pc.commit_authored_date = pc.first_commit_at\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m3: any commit is authored by an AI tool\n  SELECT pc.pr_id, i.tool, 'm3'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist')\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m4: a Co-authored-by line of an AI tool, at the start of a line (real line breaks, or the JSON-string shape)\n  SELECT pc.pr_id, i.tool, 'm4'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist') AND i.field = 'coauthor'\n   AND (REGEXP_LIKE(LOWER(pc.message), CONCAT('^co-authored-by:[ \\\\t]*(?:', i.pattern, ')'), 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), CONCAT('(^\"?|\\\\\\\\n)co-authored-by:[ \\\\t]*(?:', i.pattern, ')')))\n  UNION\n  -- m5: a \"Made-with: Cursor\" line, at the start of a line\n  SELECT pc.pr_id, 'cursor', 'm5'\n  FROM pr_commit pc\n  WHERE REGEXP_LIKE(LOWER(pc.message), '^made-with:[ \\\\t]*cursor\\\\b', 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), '(^\"?|\\\\\\\\n)made-with:[ \\\\t]*cursor\\\\b')\n  UNION\n  -- m6: a review row (REVIEW or a line comment of a review, D13) written by a review agent\n  SELECT c.pull_request_id, i.tool, 'm6'\n  FROM valid_comments c\n  JOIN identities i ON i.mode = 'review' AND i.field = 'review_author' AND REGEXP_LIKE(LOWER(c.user_name), i.pattern)\n  WHERE c.type IN ('REVIEW', 'DIFF')\n  UNION\n  -- x1 (own marker): head_ref prefix\n  SELECT p.id, x.tool, 'x1'\n  FROM pr_base p\n  JOIN (SELECT 'copilot/' AS prefix, 'copilot' AS tool\n        UNION ALL SELECT 'codex/', 'codex'\n        UNION ALL SELECT 'cursor/', 'cursor'\n        UNION ALL SELECT 'devin/', 'devin'\n        UNION ALL SELECT 'claude/', 'claude') x ON p.head_ref LIKE CONCAT(x.prefix, '%')\n  WHERE ${include_own_markers:sqlstring} = '1'\n  UNION\n  -- x2 (own marker): the PR body has Co-Authored-By: Claude\n  SELECT p.id, 'claude', 'x2'\n  FROM pr_base p\n  WHERE ${include_own_markers:sqlstring} = '1' AND LOWER(p.description) LIKE '%co-authored-by: claude%'\n),\nmarks_sel AS (\n  -- the selection of the dashboard (ADR 0002 D17), made on the marks of every kind, also m5, x1 and x2 whose tool is written in this file and\n  -- not read from identities: the tool of the mark is included, and the mode that the mark gives is included\n  SELECT m.pr_id, m.tool, m.mark\n  FROM marks m\n  WHERE m.tool IN (${tools:sqlstring})\n    AND CASE WHEN m.mark IN ('m1', 'm2') THEN 'cloud'\n             WHEN m.mark = 'm6' THEN 'review'\n             ELSE 'assist' END IN (${modes:sqlstring})\n),\npr_tool AS (\n  SELECT DISTINCT pr_id, tool FROM marks_sel\n),\npr_mode AS (\n  SELECT pr_id, 'cloud_agent' AS mode FROM marks_sel WHERE mark IN ('m1', 'm2')\n  UNION\n  SELECT pr_id, 'ai_assisted' FROM marks_sel WHERE mark IN ('m3', 'm4', 'm5', 'x1', 'x2')\n  UNION\n  SELECT pr_id, 'review_agent' FROM marks_sel WHERE mark = 'm6'\n),\npr_cloud_tool AS (\n  -- the tools whose cloud agent opened the PR or made its first commit (m1, m2)\n  SELECT DISTINCT pr_id, tool FROM marks_sel WHERE mark IN ('m1', 'm2')\n),\npr_group AS (\n  SELECT pr_id, CONCAT('tool:', tool) AS grp FROM pr_tool\n  UNION ALL\n  SELECT p.id, 'tool:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_tool t WHERE t.pr_id = p.id)\n  UNION ALL\n  SELECT pr_id, CONCAT('mode:', mode) FROM pr_mode\n  UNION ALL\n  SELECT DISTINCT pr_id, 'mode:ai_used' FROM pr_mode\n  UNION ALL\n  SELECT p.id, 'mode:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_mode m WHERE m.pr_id = p.id)\n),\nfirst_commit AS (\n  SELECT DISTINCT pr_id, first_commit_at FROM pr_commit\n),\npr_facts AS (\n  SELECT\n    p.id,\n    p.status,\n    p.size,\n    p.in_created,\n    p.in_merged,\n    -- time to first review: from the PR being opened (D1) to the first human review\n    TIMESTAMPDIFF(MINUTE, p.created_date, fr.at_time) AS ttfr_min,\n    -- time in review: from the PR being opened (D1) to the final approval, or to the merge (D5); merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, p.created_date, COALESCE(fa.at_time, p.merged_date)) END AS tir_min,\n    -- cycle time: from the first commit or the opening of the PR, whichever is earlier, to the merge; merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, LEAST(p.created_date, COALESCE(fc.first_commit_at, p.created_date)), p.merged_date) END AS cycle_min,\n    CASE WHEN p.merged_date IS NOT NULL THEN YEARWEEK(p.merged_date, 3) END AS yw           -- D6: ISO week, Monday first\n  FROM pr_base p\n  LEFT JOIN first_review fr ON fr.pr_id = p.id\n  LEFT JOIN final_approval fa ON fa.pr_id = p.id\n  LEFT JOIN first_commit fc ON fc.pr_id = p.id\n),\ngrp_vals AS (\n  SELECT g.grp, 'ttfr' AS m, f.ttfr_min AS v\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1 AND f.ttfr_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'tir', f.tir_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.tir_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'cycle', f.cycle_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.cycle_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'size', f.size\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1\n),\ngrp_ranked AS (\n  SELECT grp, m, v, percent_rank() OVER (PARTITION BY grp, m ORDER BY v) AS rk\n  FROM grp_vals\n),\ngrp_stats AS (\n  SELECT grp, m, COUNT(*) AS n, AVG(v) AS mean_v, MAX(CASE WHEN rk <= 0.5 THEN v END) AS median_v\n  FROM grp_ranked\n  GROUP BY grp, m\n), metric AS (\n-- D1 start = PR opened; D2 end = first human review of any state; PRs opened in the period; bots and the author excluded.\nSELECT\n  ag.grp,\n  COALESCE(sz.prs, 0) AS prs,\n  COALESCE(s.n, 0) AS n_defined,\n  s.mean_v AS mean_minutes,\n  s.median_v AS median_minutes\nFROM all_groups ag\nLEFT JOIN (\n  SELECT g.grp, COUNT(*) AS prs\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1\n  GROUP BY g.grp\n) sz ON sz.grp = ag.grp\nLEFT JOIN grp_stats s ON s.grp = ag.grp AND s.m = 'ttfr'\nORDER BY ag.grp\n)\nSELECT * FROM metric\nWHERE (${comparison:sqlstring} = 'tools' AND grp LIKE 'tool:%' AND grp NOT LIKE '%|%')\n   OR (${comparison:sqlstring} = 'modes' AND grp IN ('mode:cloud_agent', 'mode:ai_assisted', 'mode:review_agent', 'mode:everything_else'))\n   OR (${comparison:sqlstring} = 'ai_used' AND grp IN ('mode:ai_used', 'mode:everything_else'))\nORDER BY grp",
+          "refId": "A"
+        }
+      ],
+      "title": "最初のレビューまでの時間（Time to first review）　最初の反応の数え方: ${first_reaction}",
+      "type": "table",
+      "description": "PR を開いてから、最初の人の反応までの時間（分）。何を反応と数えるかは上の「最初の反応の数え方」で選びます。bot と PR の作者は数えません。"
+    },
+    {
+      "datasource": {
+        "type": "mysql",
+        "uid": "devlake-mysql-api"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "grp"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "群"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "n"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PR 数"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mean_minutes"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "平均"
+              },
+              {
+                "id": "unit",
+                "value": "m"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "median_minutes"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "中央値"
+              },
+              {
+                "id": "unit",
+                "value": "m"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 1
+      },
+      "id": 12,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "mysql",
+            "uid": "devlake-mysql-api"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH identities(tool, mode, field, pattern) AS (\n  -- tool, mode (cloud | assist | review), field (pr_author | commit_author_name | commit_author_email |\n  -- coauthor | review_author), pattern (lower case). Add or remove rows here per company.\n  -- Basis of each row: docs/agent_identities.md.\n  SELECT 'copilot', 'cloud', 'pr_author', '^(copilot|copilot-swe-agent\\\\[bot\\\\])$'\n  UNION ALL SELECT 'copilot', 'review', 'review_author', '^(copilot|copilot-pull-request-reviewer\\\\[bot\\\\])$'\n  UNION ALL SELECT 'cursor', 'cloud', 'pr_author', '^cursor\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_name', '^cursor agent$'                   -- git name seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_email', '^cursoragent@cursor\\\\.com$'       -- git e-mail seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'claude', 'cloud', 'pr_author', '^claude\\\\[bot\\\\]$'\n  UNION ALL SELECT 'claude', 'cloud', 'commit_author_name', '^claude$'\n  UNION ALL SELECT 'claude', 'assist', 'coauthor', 'claude\\\\b'\n  UNION ALL SELECT 'codex', 'cloud', 'pr_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'codex', 'review', 'review_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'cloud', 'pr_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'review', 'review_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'cloud', 'pr_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'review', 'review_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'cloud', 'pr_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'review', 'review_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'cloud', 'pr_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'review', 'review_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'cloud', 'pr_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'review', 'review_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'cloud', 'pr_author', '^qodo-code-review\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'review', 'review_author', '^qodo-code-review\\\\[bot\\\\]$'\n  -- CUSTOM-TOOLS-INSERT-POINT: tools/build_dashboard.py puts the rows of --custom-tools on the lines after this one (docs/dashboard.md)\n),\nall_groups AS (\n  -- the tool rows of the selected tools only (an excluded tool has no row on the dashboard)\n  SELECT DISTINCT CONCAT('tool:', tool) AS grp FROM identities WHERE tool IN (${tools:sqlstring})\n  UNION ALL SELECT 'tool:everything_else'\n  UNION ALL SELECT 'mode:cloud_agent'\n  UNION ALL SELECT 'mode:ai_assisted'\n  UNION ALL SELECT 'mode:review_agent'\n  UNION ALL SELECT 'mode:ai_used'\n  UNION ALL SELECT 'mode:everything_else'\n),\nacct AS (\n  SELECT\n    a.id,\n    a.user_name,\n    -- bot (D11): the is_bot flag, U1's agent bot names, or a login of the identities list\n    CASE WHEN COALESCE(a.is_bot, 0) = 1\n           OR a.user_name IN ('Copilot', 'copilot-swe-agent[bot]', 'devin-ai-integration[bot]')\n           OR EXISTS (SELECT 1 FROM identities i\n                       WHERE i.field IN ('pr_author', 'review_author')\n                         AND REGEXP_LIKE(LOWER(a.user_name), i.pattern))\n         THEN 1 ELSE 0 END AS is_bot\n  FROM accounts a\n),\npr_base AS (\n  -- every PR that was opened or merged in the period; the metrics pick in_created or in_merged (D12)\n  SELECT\n    pr.id,\n    pr.author_id,\n    -- the login of the PR author: the account row (accounts.user_name, \"cursor[bot]\") when there is one; DevLake's\n    -- GraphQL path stores pull_requests.author_name without \"[bot]\" (\"cursor\"), so that column is used only when the\n    -- account row is missing (ADR 0002 A1)\n    CASE WHEN au.id IS NULL THEN pr.author_name ELSE au.user_name END AS author_login,\n    pr.status,\n    pr.created_date,\n    pr.merged_date,\n    pr.head_ref,\n    pr.description,\n    COALESCE(pr.additions, 0) + COALESCE(pr.deletions, 0) AS size,\n    CASE WHEN $__timeFilter(pr.created_date) THEN 1 ELSE 0 END AS in_created,\n    CASE WHEN $__timeFilter(pr.merged_date) THEN 1 ELSE 0 END AS in_merged\n  FROM pull_requests pr\n  LEFT JOIN accounts au ON au.id = pr.author_id\n  WHERE ($__timeFilter(pr.created_date) OR $__timeFilter(pr.merged_date))\n    AND pr.base_repo_id IN (${repo_id})\n),\nvalid_comments AS (\n  SELECT\n    c.pull_request_id,\n    c.account_id,\n    c.created_date,\n    c.type,\n    c.status,\n    ca.user_name,\n    COALESCE(ca.is_bot, 0) AS is_bot\n  FROM pull_request_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  LEFT JOIN acct ca ON ca.id = c.account_id\n  WHERE NOT (c.type = 'REVIEW' AND COALESCE(c.status, '') = 'PENDING')                       -- unsent reviews out (as in U1)\n),\nhuman_reviews AS (\n  -- review rows of people: not a bot, not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date, c.status\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type = 'REVIEW'\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nhuman_reactions AS (\n  -- ADR 0002 D16: the rows of people that are U1's first human reaction: a review row, a NORMAL comment or a line comment (DIFF); unsent\n  -- reviews are already out of valid_comments; not a bot (D11), not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type IN ('REVIEW', 'NORMAL', 'DIFF')\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nfirst_review AS (\n  -- D2: the first submitted review of any state (approved, changes requested, commented, dismissed).\n  -- D16: when the dashboard variable first_reaction is 'any', the end of the wait is the first human reaction of any of the three kinds\n  SELECT pr_id, MIN(created_date) AS at_time\n  FROM (SELECT pr_id, created_date FROM human_reviews WHERE ${first_reaction:sqlstring} <> 'any'\n        UNION ALL\n        SELECT pr_id, created_date FROM human_reactions WHERE ${first_reaction:sqlstring} = 'any') r\n  GROUP BY pr_id\n),\nfinal_approval AS (\n  -- D9: the last APPROVED review before the merge\n  SELECT hr.pr_id, MAX(hr.created_date) AS at_time\n  FROM human_reviews hr\n  JOIN pr_base p ON p.id = hr.pr_id\n  WHERE hr.status = 'APPROVED' AND p.merged_date IS NOT NULL AND hr.created_date < p.merged_date\n  GROUP BY hr.pr_id\n),\ntool_commits AS (\n  -- ADJUSTMENT POINT (ADR 0002 D15): where the text of a commit of a PR is read from when `commits` has none. The default is the\n  -- tool-layer table of DevLake's GitHub plugin (primary key sha only, no connection column; `message` is the text of the commit as GitHub\n  -- gave it). That table exists only when the GitHub plugin was built (a DevLake built with DEVLAKE_PLUGINS=gitlab,... does not have it): in\n  -- that case replace the line below by an empty list with the same two columns, and the SQL reads `commits` only:\n  --   SELECT CAST(NULL AS CHAR(40)) AS sha, CAST(NULL AS CHAR) AS message FROM (SELECT 1) one WHERE 1 = 0\n  SELECT t.sha, t.message FROM _tool_github_commits t\n),\npr_commit AS (\n  -- commits and tool_commits are joined with LEFT JOIN: a PR whose message is in neither stays in every count\n  SELECT\n    prc.pull_request_id AS pr_id,\n    prc.commit_sha,\n    prc.commit_author_name,\n    prc.commit_author_email,\n    prc.commit_authored_date,\n    -- the text of the commit (ADR 0002 D15): the domain-layer `commits.message` first, then the tool table. commits.message is a longblob in a\n    -- real DevLake (ADR 0002 A2): LOWER() and REGEXP_LIKE() on a binary string are case-sensitive, so the text is converted first. An empty\n    -- text counts as no text (NULLIF), so the tool table is read then, too.\n    COALESCE(NULLIF(CONVERT(cm.message USING utf8mb4), ''), t.message) AS message,\n    -- 1 when the text of this commit came from the tool table (the domain-layer text is missing or empty and the tool table has one)\n    CASE WHEN NULLIF(CONVERT(cm.message USING utf8mb4), '') IS NULL AND t.message IS NOT NULL THEN 1 ELSE 0 END AS from_tool,\n    MIN(prc.commit_authored_date) OVER (PARTITION BY prc.pull_request_id) AS first_commit_at\n  FROM pull_request_commits prc\n  JOIN pr_base p ON p.id = prc.pull_request_id\n  LEFT JOIN commits cm ON cm.sha = prc.commit_sha\n  LEFT JOIN tool_commits t ON t.sha = prc.commit_sha\n),\nmarks AS (\n  -- m1: the PR author is a cloud agent\n  SELECT p.id AS pr_id, i.tool, 'm1' AS mark\n  FROM pr_base p\n  JOIN identities i ON i.mode = 'cloud' AND i.field = 'pr_author' AND REGEXP_LIKE(LOWER(p.author_login), i.pattern)\n  UNION\n  -- m2: the first commit (D10: all commits with the earliest time) is authored by a cloud agent, by name or e-mail\n  SELECT pc.pr_id, i.tool, 'm2'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode = 'cloud'\n   AND pc.commit_authored_date = pc.first_commit_at\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m3: any commit is authored by an AI tool\n  SELECT pc.pr_id, i.tool, 'm3'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist')\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m4: a Co-authored-by line of an AI tool, at the start of a line (real line breaks, or the JSON-string shape)\n  SELECT pc.pr_id, i.tool, 'm4'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist') AND i.field = 'coauthor'\n   AND (REGEXP_LIKE(LOWER(pc.message), CONCAT('^co-authored-by:[ \\\\t]*(?:', i.pattern, ')'), 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), CONCAT('(^\"?|\\\\\\\\n)co-authored-by:[ \\\\t]*(?:', i.pattern, ')')))\n  UNION\n  -- m5: a \"Made-with: Cursor\" line, at the start of a line\n  SELECT pc.pr_id, 'cursor', 'm5'\n  FROM pr_commit pc\n  WHERE REGEXP_LIKE(LOWER(pc.message), '^made-with:[ \\\\t]*cursor\\\\b', 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), '(^\"?|\\\\\\\\n)made-with:[ \\\\t]*cursor\\\\b')\n  UNION\n  -- m6: a review row (REVIEW or a line comment of a review, D13) written by a review agent\n  SELECT c.pull_request_id, i.tool, 'm6'\n  FROM valid_comments c\n  JOIN identities i ON i.mode = 'review' AND i.field = 'review_author' AND REGEXP_LIKE(LOWER(c.user_name), i.pattern)\n  WHERE c.type IN ('REVIEW', 'DIFF')\n  UNION\n  -- x1 (own marker): head_ref prefix\n  SELECT p.id, x.tool, 'x1'\n  FROM pr_base p\n  JOIN (SELECT 'copilot/' AS prefix, 'copilot' AS tool\n        UNION ALL SELECT 'codex/', 'codex'\n        UNION ALL SELECT 'cursor/', 'cursor'\n        UNION ALL SELECT 'devin/', 'devin'\n        UNION ALL SELECT 'claude/', 'claude') x ON p.head_ref LIKE CONCAT(x.prefix, '%')\n  WHERE ${include_own_markers:sqlstring} = '1'\n  UNION\n  -- x2 (own marker): the PR body has Co-Authored-By: Claude\n  SELECT p.id, 'claude', 'x2'\n  FROM pr_base p\n  WHERE ${include_own_markers:sqlstring} = '1' AND LOWER(p.description) LIKE '%co-authored-by: claude%'\n),\nmarks_sel AS (\n  -- the selection of the dashboard (ADR 0002 D17), made on the marks of every kind, also m5, x1 and x2 whose tool is written in this file and\n  -- not read from identities: the tool of the mark is included, and the mode that the mark gives is included\n  SELECT m.pr_id, m.tool, m.mark\n  FROM marks m\n  WHERE m.tool IN (${tools:sqlstring})\n    AND CASE WHEN m.mark IN ('m1', 'm2') THEN 'cloud'\n             WHEN m.mark = 'm6' THEN 'review'\n             ELSE 'assist' END IN (${modes:sqlstring})\n),\npr_tool AS (\n  SELECT DISTINCT pr_id, tool FROM marks_sel\n),\npr_mode AS (\n  SELECT pr_id, 'cloud_agent' AS mode FROM marks_sel WHERE mark IN ('m1', 'm2')\n  UNION\n  SELECT pr_id, 'ai_assisted' FROM marks_sel WHERE mark IN ('m3', 'm4', 'm5', 'x1', 'x2')\n  UNION\n  SELECT pr_id, 'review_agent' FROM marks_sel WHERE mark = 'm6'\n),\npr_cloud_tool AS (\n  -- the tools whose cloud agent opened the PR or made its first commit (m1, m2)\n  SELECT DISTINCT pr_id, tool FROM marks_sel WHERE mark IN ('m1', 'm2')\n),\npr_group AS (\n  SELECT pr_id, CONCAT('tool:', tool) AS grp FROM pr_tool\n  UNION ALL\n  SELECT p.id, 'tool:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_tool t WHERE t.pr_id = p.id)\n  UNION ALL\n  SELECT pr_id, CONCAT('mode:', mode) FROM pr_mode\n  UNION ALL\n  SELECT DISTINCT pr_id, 'mode:ai_used' FROM pr_mode\n  UNION ALL\n  SELECT p.id, 'mode:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_mode m WHERE m.pr_id = p.id)\n),\nfirst_commit AS (\n  SELECT DISTINCT pr_id, first_commit_at FROM pr_commit\n),\npr_facts AS (\n  SELECT\n    p.id,\n    p.status,\n    p.size,\n    p.in_created,\n    p.in_merged,\n    -- time to first review: from the PR being opened (D1) to the first human review\n    TIMESTAMPDIFF(MINUTE, p.created_date, fr.at_time) AS ttfr_min,\n    -- time in review: from the PR being opened (D1) to the final approval, or to the merge (D5); merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, p.created_date, COALESCE(fa.at_time, p.merged_date)) END AS tir_min,\n    -- cycle time: from the first commit or the opening of the PR, whichever is earlier, to the merge; merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, LEAST(p.created_date, COALESCE(fc.first_commit_at, p.created_date)), p.merged_date) END AS cycle_min,\n    CASE WHEN p.merged_date IS NOT NULL THEN YEARWEEK(p.merged_date, 3) END AS yw           -- D6: ISO week, Monday first\n  FROM pr_base p\n  LEFT JOIN first_review fr ON fr.pr_id = p.id\n  LEFT JOIN final_approval fa ON fa.pr_id = p.id\n  LEFT JOIN first_commit fc ON fc.pr_id = p.id\n),\ngrp_vals AS (\n  SELECT g.grp, 'ttfr' AS m, f.ttfr_min AS v\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1 AND f.ttfr_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'tir', f.tir_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.tir_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'cycle', f.cycle_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.cycle_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'size', f.size\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1\n),\ngrp_ranked AS (\n  SELECT grp, m, v, percent_rank() OVER (PARTITION BY grp, m ORDER BY v) AS rk\n  FROM grp_vals\n),\ngrp_stats AS (\n  SELECT grp, m, COUNT(*) AS n, AVG(v) AS mean_v, MAX(CASE WHEN rk <= 0.5 THEN v END) AS median_v\n  FROM grp_ranked\n  GROUP BY grp, m\n), metric AS (\n-- Merged PRs only, merged in the period (D12).\nSELECT\n  ag.grp,\n  COALESCE(s.n, 0) AS n,\n  s.mean_v AS mean_minutes,\n  s.median_v AS median_minutes\nFROM all_groups ag\nLEFT JOIN grp_stats s ON s.grp = ag.grp AND s.m = 'cycle'\nORDER BY ag.grp\n)\nSELECT * FROM metric\nWHERE (${comparison:sqlstring} = 'tools' AND grp LIKE 'tool:%' AND grp NOT LIKE '%|%')\n   OR (${comparison:sqlstring} = 'modes' AND grp IN ('mode:cloud_agent', 'mode:ai_assisted', 'mode:review_agent', 'mode:everything_else'))\n   OR (${comparison:sqlstring} = 'ai_used' AND grp IN ('mode:ai_used', 'mode:everything_else'))\nORDER BY grp",
+          "refId": "A"
+        }
+      ],
+      "title": "サイクルタイム（Cycle time）",
+      "type": "table",
+      "description": "最初の commit か PR を開いた時の早い方から、マージまでの時間（分）。マージした PR だけ。"
+    },
+    {
+      "datasource": {
+        "type": "mysql",
+        "uid": "devlake-mysql-api"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "grp"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "群"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "n"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PR 数"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mean_minutes"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "平均"
+              },
+              {
+                "id": "unit",
+                "value": "m"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "median_minutes"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "中央値"
+              },
+              {
+                "id": "unit",
+                "value": "m"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 9
+      },
+      "id": 14,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "mysql",
+            "uid": "devlake-mysql-api"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH identities(tool, mode, field, pattern) AS (\n  -- tool, mode (cloud | assist | review), field (pr_author | commit_author_name | commit_author_email |\n  -- coauthor | review_author), pattern (lower case). Add or remove rows here per company.\n  -- Basis of each row: docs/agent_identities.md.\n  SELECT 'copilot', 'cloud', 'pr_author', '^(copilot|copilot-swe-agent\\\\[bot\\\\])$'\n  UNION ALL SELECT 'copilot', 'review', 'review_author', '^(copilot|copilot-pull-request-reviewer\\\\[bot\\\\])$'\n  UNION ALL SELECT 'cursor', 'cloud', 'pr_author', '^cursor\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_name', '^cursor agent$'                   -- git name seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_email', '^cursoragent@cursor\\\\.com$'       -- git e-mail seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'claude', 'cloud', 'pr_author', '^claude\\\\[bot\\\\]$'\n  UNION ALL SELECT 'claude', 'cloud', 'commit_author_name', '^claude$'\n  UNION ALL SELECT 'claude', 'assist', 'coauthor', 'claude\\\\b'\n  UNION ALL SELECT 'codex', 'cloud', 'pr_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'codex', 'review', 'review_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'cloud', 'pr_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'review', 'review_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'cloud', 'pr_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'review', 'review_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'cloud', 'pr_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'review', 'review_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'cloud', 'pr_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'review', 'review_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'cloud', 'pr_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'review', 'review_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'cloud', 'pr_author', '^qodo-code-review\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'review', 'review_author', '^qodo-code-review\\\\[bot\\\\]$'\n  -- CUSTOM-TOOLS-INSERT-POINT: tools/build_dashboard.py puts the rows of --custom-tools on the lines after this one (docs/dashboard.md)\n),\nall_groups AS (\n  -- the tool rows of the selected tools only (an excluded tool has no row on the dashboard)\n  SELECT DISTINCT CONCAT('tool:', tool) AS grp FROM identities WHERE tool IN (${tools:sqlstring})\n  UNION ALL SELECT 'tool:everything_else'\n  UNION ALL SELECT 'mode:cloud_agent'\n  UNION ALL SELECT 'mode:ai_assisted'\n  UNION ALL SELECT 'mode:review_agent'\n  UNION ALL SELECT 'mode:ai_used'\n  UNION ALL SELECT 'mode:everything_else'\n),\nacct AS (\n  SELECT\n    a.id,\n    a.user_name,\n    -- bot (D11): the is_bot flag, U1's agent bot names, or a login of the identities list\n    CASE WHEN COALESCE(a.is_bot, 0) = 1\n           OR a.user_name IN ('Copilot', 'copilot-swe-agent[bot]', 'devin-ai-integration[bot]')\n           OR EXISTS (SELECT 1 FROM identities i\n                       WHERE i.field IN ('pr_author', 'review_author')\n                         AND REGEXP_LIKE(LOWER(a.user_name), i.pattern))\n         THEN 1 ELSE 0 END AS is_bot\n  FROM accounts a\n),\npr_base AS (\n  -- every PR that was opened or merged in the period; the metrics pick in_created or in_merged (D12)\n  SELECT\n    pr.id,\n    pr.author_id,\n    -- the login of the PR author: the account row (accounts.user_name, \"cursor[bot]\") when there is one; DevLake's\n    -- GraphQL path stores pull_requests.author_name without \"[bot]\" (\"cursor\"), so that column is used only when the\n    -- account row is missing (ADR 0002 A1)\n    CASE WHEN au.id IS NULL THEN pr.author_name ELSE au.user_name END AS author_login,\n    pr.status,\n    pr.created_date,\n    pr.merged_date,\n    pr.head_ref,\n    pr.description,\n    COALESCE(pr.additions, 0) + COALESCE(pr.deletions, 0) AS size,\n    CASE WHEN $__timeFilter(pr.created_date) THEN 1 ELSE 0 END AS in_created,\n    CASE WHEN $__timeFilter(pr.merged_date) THEN 1 ELSE 0 END AS in_merged\n  FROM pull_requests pr\n  LEFT JOIN accounts au ON au.id = pr.author_id\n  WHERE ($__timeFilter(pr.created_date) OR $__timeFilter(pr.merged_date))\n    AND pr.base_repo_id IN (${repo_id})\n),\nvalid_comments AS (\n  SELECT\n    c.pull_request_id,\n    c.account_id,\n    c.created_date,\n    c.type,\n    c.status,\n    ca.user_name,\n    COALESCE(ca.is_bot, 0) AS is_bot\n  FROM pull_request_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  LEFT JOIN acct ca ON ca.id = c.account_id\n  WHERE NOT (c.type = 'REVIEW' AND COALESCE(c.status, '') = 'PENDING')                       -- unsent reviews out (as in U1)\n),\nhuman_reviews AS (\n  -- review rows of people: not a bot, not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date, c.status\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type = 'REVIEW'\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nhuman_reactions AS (\n  -- ADR 0002 D16: the rows of people that are U1's first human reaction: a review row, a NORMAL comment or a line comment (DIFF); unsent\n  -- reviews are already out of valid_comments; not a bot (D11), not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type IN ('REVIEW', 'NORMAL', 'DIFF')\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nfirst_review AS (\n  -- D2: the first submitted review of any state (approved, changes requested, commented, dismissed).\n  -- D16: when the dashboard variable first_reaction is 'any', the end of the wait is the first human reaction of any of the three kinds\n  SELECT pr_id, MIN(created_date) AS at_time\n  FROM (SELECT pr_id, created_date FROM human_reviews WHERE ${first_reaction:sqlstring} <> 'any'\n        UNION ALL\n        SELECT pr_id, created_date FROM human_reactions WHERE ${first_reaction:sqlstring} = 'any') r\n  GROUP BY pr_id\n),\nfinal_approval AS (\n  -- D9: the last APPROVED review before the merge\n  SELECT hr.pr_id, MAX(hr.created_date) AS at_time\n  FROM human_reviews hr\n  JOIN pr_base p ON p.id = hr.pr_id\n  WHERE hr.status = 'APPROVED' AND p.merged_date IS NOT NULL AND hr.created_date < p.merged_date\n  GROUP BY hr.pr_id\n),\ntool_commits AS (\n  -- ADJUSTMENT POINT (ADR 0002 D15): where the text of a commit of a PR is read from when `commits` has none. The default is the\n  -- tool-layer table of DevLake's GitHub plugin (primary key sha only, no connection column; `message` is the text of the commit as GitHub\n  -- gave it). That table exists only when the GitHub plugin was built (a DevLake built with DEVLAKE_PLUGINS=gitlab,... does not have it): in\n  -- that case replace the line below by an empty list with the same two columns, and the SQL reads `commits` only:\n  --   SELECT CAST(NULL AS CHAR(40)) AS sha, CAST(NULL AS CHAR) AS message FROM (SELECT 1) one WHERE 1 = 0\n  SELECT t.sha, t.message FROM _tool_github_commits t\n),\npr_commit AS (\n  -- commits and tool_commits are joined with LEFT JOIN: a PR whose message is in neither stays in every count\n  SELECT\n    prc.pull_request_id AS pr_id,\n    prc.commit_sha,\n    prc.commit_author_name,\n    prc.commit_author_email,\n    prc.commit_authored_date,\n    -- the text of the commit (ADR 0002 D15): the domain-layer `commits.message` first, then the tool table. commits.message is a longblob in a\n    -- real DevLake (ADR 0002 A2): LOWER() and REGEXP_LIKE() on a binary string are case-sensitive, so the text is converted first. An empty\n    -- text counts as no text (NULLIF), so the tool table is read then, too.\n    COALESCE(NULLIF(CONVERT(cm.message USING utf8mb4), ''), t.message) AS message,\n    -- 1 when the text of this commit came from the tool table (the domain-layer text is missing or empty and the tool table has one)\n    CASE WHEN NULLIF(CONVERT(cm.message USING utf8mb4), '') IS NULL AND t.message IS NOT NULL THEN 1 ELSE 0 END AS from_tool,\n    MIN(prc.commit_authored_date) OVER (PARTITION BY prc.pull_request_id) AS first_commit_at\n  FROM pull_request_commits prc\n  JOIN pr_base p ON p.id = prc.pull_request_id\n  LEFT JOIN commits cm ON cm.sha = prc.commit_sha\n  LEFT JOIN tool_commits t ON t.sha = prc.commit_sha\n),\nmarks AS (\n  -- m1: the PR author is a cloud agent\n  SELECT p.id AS pr_id, i.tool, 'm1' AS mark\n  FROM pr_base p\n  JOIN identities i ON i.mode = 'cloud' AND i.field = 'pr_author' AND REGEXP_LIKE(LOWER(p.author_login), i.pattern)\n  UNION\n  -- m2: the first commit (D10: all commits with the earliest time) is authored by a cloud agent, by name or e-mail\n  SELECT pc.pr_id, i.tool, 'm2'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode = 'cloud'\n   AND pc.commit_authored_date = pc.first_commit_at\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m3: any commit is authored by an AI tool\n  SELECT pc.pr_id, i.tool, 'm3'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist')\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m4: a Co-authored-by line of an AI tool, at the start of a line (real line breaks, or the JSON-string shape)\n  SELECT pc.pr_id, i.tool, 'm4'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist') AND i.field = 'coauthor'\n   AND (REGEXP_LIKE(LOWER(pc.message), CONCAT('^co-authored-by:[ \\\\t]*(?:', i.pattern, ')'), 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), CONCAT('(^\"?|\\\\\\\\n)co-authored-by:[ \\\\t]*(?:', i.pattern, ')')))\n  UNION\n  -- m5: a \"Made-with: Cursor\" line, at the start of a line\n  SELECT pc.pr_id, 'cursor', 'm5'\n  FROM pr_commit pc\n  WHERE REGEXP_LIKE(LOWER(pc.message), '^made-with:[ \\\\t]*cursor\\\\b', 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), '(^\"?|\\\\\\\\n)made-with:[ \\\\t]*cursor\\\\b')\n  UNION\n  -- m6: a review row (REVIEW or a line comment of a review, D13) written by a review agent\n  SELECT c.pull_request_id, i.tool, 'm6'\n  FROM valid_comments c\n  JOIN identities i ON i.mode = 'review' AND i.field = 'review_author' AND REGEXP_LIKE(LOWER(c.user_name), i.pattern)\n  WHERE c.type IN ('REVIEW', 'DIFF')\n  UNION\n  -- x1 (own marker): head_ref prefix\n  SELECT p.id, x.tool, 'x1'\n  FROM pr_base p\n  JOIN (SELECT 'copilot/' AS prefix, 'copilot' AS tool\n        UNION ALL SELECT 'codex/', 'codex'\n        UNION ALL SELECT 'cursor/', 'cursor'\n        UNION ALL SELECT 'devin/', 'devin'\n        UNION ALL SELECT 'claude/', 'claude') x ON p.head_ref LIKE CONCAT(x.prefix, '%')\n  WHERE ${include_own_markers:sqlstring} = '1'\n  UNION\n  -- x2 (own marker): the PR body has Co-Authored-By: Claude\n  SELECT p.id, 'claude', 'x2'\n  FROM pr_base p\n  WHERE ${include_own_markers:sqlstring} = '1' AND LOWER(p.description) LIKE '%co-authored-by: claude%'\n),\nmarks_sel AS (\n  -- the selection of the dashboard (ADR 0002 D17), made on the marks of every kind, also m5, x1 and x2 whose tool is written in this file and\n  -- not read from identities: the tool of the mark is included, and the mode that the mark gives is included\n  SELECT m.pr_id, m.tool, m.mark\n  FROM marks m\n  WHERE m.tool IN (${tools:sqlstring})\n    AND CASE WHEN m.mark IN ('m1', 'm2') THEN 'cloud'\n             WHEN m.mark = 'm6' THEN 'review'\n             ELSE 'assist' END IN (${modes:sqlstring})\n),\npr_tool AS (\n  SELECT DISTINCT pr_id, tool FROM marks_sel\n),\npr_mode AS (\n  SELECT pr_id, 'cloud_agent' AS mode FROM marks_sel WHERE mark IN ('m1', 'm2')\n  UNION\n  SELECT pr_id, 'ai_assisted' FROM marks_sel WHERE mark IN ('m3', 'm4', 'm5', 'x1', 'x2')\n  UNION\n  SELECT pr_id, 'review_agent' FROM marks_sel WHERE mark = 'm6'\n),\npr_cloud_tool AS (\n  -- the tools whose cloud agent opened the PR or made its first commit (m1, m2)\n  SELECT DISTINCT pr_id, tool FROM marks_sel WHERE mark IN ('m1', 'm2')\n),\npr_group AS (\n  SELECT pr_id, CONCAT('tool:', tool) AS grp FROM pr_tool\n  UNION ALL\n  SELECT p.id, 'tool:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_tool t WHERE t.pr_id = p.id)\n  UNION ALL\n  SELECT pr_id, CONCAT('mode:', mode) FROM pr_mode\n  UNION ALL\n  SELECT DISTINCT pr_id, 'mode:ai_used' FROM pr_mode\n  UNION ALL\n  SELECT p.id, 'mode:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_mode m WHERE m.pr_id = p.id)\n),\nfirst_commit AS (\n  SELECT DISTINCT pr_id, first_commit_at FROM pr_commit\n),\npr_facts AS (\n  SELECT\n    p.id,\n    p.status,\n    p.size,\n    p.in_created,\n    p.in_merged,\n    -- time to first review: from the PR being opened (D1) to the first human review\n    TIMESTAMPDIFF(MINUTE, p.created_date, fr.at_time) AS ttfr_min,\n    -- time in review: from the PR being opened (D1) to the final approval, or to the merge (D5); merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, p.created_date, COALESCE(fa.at_time, p.merged_date)) END AS tir_min,\n    -- cycle time: from the first commit or the opening of the PR, whichever is earlier, to the merge; merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, LEAST(p.created_date, COALESCE(fc.first_commit_at, p.created_date)), p.merged_date) END AS cycle_min,\n    CASE WHEN p.merged_date IS NOT NULL THEN YEARWEEK(p.merged_date, 3) END AS yw           -- D6: ISO week, Monday first\n  FROM pr_base p\n  LEFT JOIN first_review fr ON fr.pr_id = p.id\n  LEFT JOIN final_approval fa ON fa.pr_id = p.id\n  LEFT JOIN first_commit fc ON fc.pr_id = p.id\n),\ngrp_vals AS (\n  SELECT g.grp, 'ttfr' AS m, f.ttfr_min AS v\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1 AND f.ttfr_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'tir', f.tir_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.tir_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'cycle', f.cycle_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.cycle_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'size', f.size\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1\n),\ngrp_ranked AS (\n  SELECT grp, m, v, percent_rank() OVER (PARTITION BY grp, m ORDER BY v) AS rk\n  FROM grp_vals\n),\ngrp_stats AS (\n  SELECT grp, m, COUNT(*) AS n, AVG(v) AS mean_v, MAX(CASE WHEN rk <= 0.5 THEN v END) AS median_v\n  FROM grp_ranked\n  GROUP BY grp, m\n), metric AS (\n-- Merged PRs only, merged in the period (D12).\nSELECT\n  ag.grp,\n  COALESCE(s.n, 0) AS n,\n  s.mean_v AS mean_minutes,\n  s.median_v AS median_minutes\nFROM all_groups ag\nLEFT JOIN grp_stats s ON s.grp = ag.grp AND s.m = 'tir'\nORDER BY ag.grp\n)\nSELECT * FROM metric\nWHERE (${comparison:sqlstring} = 'tools' AND grp LIKE 'tool:%' AND grp NOT LIKE '%|%')\n   OR (${comparison:sqlstring} = 'modes' AND grp IN ('mode:cloud_agent', 'mode:ai_assisted', 'mode:review_agent', 'mode:everything_else'))\n   OR (${comparison:sqlstring} = 'ai_used' AND grp IN ('mode:ai_used', 'mode:everything_else'))\nORDER BY grp",
+          "refId": "A"
+        }
+      ],
+      "title": "レビューの時間（Time in review）",
+      "type": "table",
+      "description": "PR を開いてから、最後の承認（承認が無ければマージ）までの時間（分）。マージした PR だけ。"
+    },
+    {
+      "datasource": {
+        "type": "mysql",
+        "uid": "devlake-mysql-api"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "grp"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "群"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "prs"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PR 数"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mean_size"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "平均（行）"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "median_size"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "中央値（行）"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "share_lt200"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "200 行未満"
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "share_200_499"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "200〜499 行"
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "share_ge500"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "500 行以上"
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 8,
+        "y": 9
+      },
+      "id": 15,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "mysql",
+            "uid": "devlake-mysql-api"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH identities(tool, mode, field, pattern) AS (\n  -- tool, mode (cloud | assist | review), field (pr_author | commit_author_name | commit_author_email |\n  -- coauthor | review_author), pattern (lower case). Add or remove rows here per company.\n  -- Basis of each row: docs/agent_identities.md.\n  SELECT 'copilot', 'cloud', 'pr_author', '^(copilot|copilot-swe-agent\\\\[bot\\\\])$'\n  UNION ALL SELECT 'copilot', 'review', 'review_author', '^(copilot|copilot-pull-request-reviewer\\\\[bot\\\\])$'\n  UNION ALL SELECT 'cursor', 'cloud', 'pr_author', '^cursor\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_name', '^cursor agent$'                   -- git name seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_email', '^cursoragent@cursor\\\\.com$'       -- git e-mail seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'claude', 'cloud', 'pr_author', '^claude\\\\[bot\\\\]$'\n  UNION ALL SELECT 'claude', 'cloud', 'commit_author_name', '^claude$'\n  UNION ALL SELECT 'claude', 'assist', 'coauthor', 'claude\\\\b'\n  UNION ALL SELECT 'codex', 'cloud', 'pr_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'codex', 'review', 'review_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'cloud', 'pr_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'review', 'review_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'cloud', 'pr_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'review', 'review_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'cloud', 'pr_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'review', 'review_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'cloud', 'pr_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'review', 'review_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'cloud', 'pr_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'review', 'review_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'cloud', 'pr_author', '^qodo-code-review\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'review', 'review_author', '^qodo-code-review\\\\[bot\\\\]$'\n  -- CUSTOM-TOOLS-INSERT-POINT: tools/build_dashboard.py puts the rows of --custom-tools on the lines after this one (docs/dashboard.md)\n),\nall_groups AS (\n  -- the tool rows of the selected tools only (an excluded tool has no row on the dashboard)\n  SELECT DISTINCT CONCAT('tool:', tool) AS grp FROM identities WHERE tool IN (${tools:sqlstring})\n  UNION ALL SELECT 'tool:everything_else'\n  UNION ALL SELECT 'mode:cloud_agent'\n  UNION ALL SELECT 'mode:ai_assisted'\n  UNION ALL SELECT 'mode:review_agent'\n  UNION ALL SELECT 'mode:ai_used'\n  UNION ALL SELECT 'mode:everything_else'\n),\nacct AS (\n  SELECT\n    a.id,\n    a.user_name,\n    -- bot (D11): the is_bot flag, U1's agent bot names, or a login of the identities list\n    CASE WHEN COALESCE(a.is_bot, 0) = 1\n           OR a.user_name IN ('Copilot', 'copilot-swe-agent[bot]', 'devin-ai-integration[bot]')\n           OR EXISTS (SELECT 1 FROM identities i\n                       WHERE i.field IN ('pr_author', 'review_author')\n                         AND REGEXP_LIKE(LOWER(a.user_name), i.pattern))\n         THEN 1 ELSE 0 END AS is_bot\n  FROM accounts a\n),\npr_base AS (\n  -- every PR that was opened or merged in the period; the metrics pick in_created or in_merged (D12)\n  SELECT\n    pr.id,\n    pr.author_id,\n    -- the login of the PR author: the account row (accounts.user_name, \"cursor[bot]\") when there is one; DevLake's\n    -- GraphQL path stores pull_requests.author_name without \"[bot]\" (\"cursor\"), so that column is used only when the\n    -- account row is missing (ADR 0002 A1)\n    CASE WHEN au.id IS NULL THEN pr.author_name ELSE au.user_name END AS author_login,\n    pr.status,\n    pr.created_date,\n    pr.merged_date,\n    pr.head_ref,\n    pr.description,\n    COALESCE(pr.additions, 0) + COALESCE(pr.deletions, 0) AS size,\n    CASE WHEN $__timeFilter(pr.created_date) THEN 1 ELSE 0 END AS in_created,\n    CASE WHEN $__timeFilter(pr.merged_date) THEN 1 ELSE 0 END AS in_merged\n  FROM pull_requests pr\n  LEFT JOIN accounts au ON au.id = pr.author_id\n  WHERE ($__timeFilter(pr.created_date) OR $__timeFilter(pr.merged_date))\n    AND pr.base_repo_id IN (${repo_id})\n),\nvalid_comments AS (\n  SELECT\n    c.pull_request_id,\n    c.account_id,\n    c.created_date,\n    c.type,\n    c.status,\n    ca.user_name,\n    COALESCE(ca.is_bot, 0) AS is_bot\n  FROM pull_request_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  LEFT JOIN acct ca ON ca.id = c.account_id\n  WHERE NOT (c.type = 'REVIEW' AND COALESCE(c.status, '') = 'PENDING')                       -- unsent reviews out (as in U1)\n),\nhuman_reviews AS (\n  -- review rows of people: not a bot, not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date, c.status\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type = 'REVIEW'\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nhuman_reactions AS (\n  -- ADR 0002 D16: the rows of people that are U1's first human reaction: a review row, a NORMAL comment or a line comment (DIFF); unsent\n  -- reviews are already out of valid_comments; not a bot (D11), not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type IN ('REVIEW', 'NORMAL', 'DIFF')\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nfirst_review AS (\n  -- D2: the first submitted review of any state (approved, changes requested, commented, dismissed).\n  -- D16: when the dashboard variable first_reaction is 'any', the end of the wait is the first human reaction of any of the three kinds\n  SELECT pr_id, MIN(created_date) AS at_time\n  FROM (SELECT pr_id, created_date FROM human_reviews WHERE ${first_reaction:sqlstring} <> 'any'\n        UNION ALL\n        SELECT pr_id, created_date FROM human_reactions WHERE ${first_reaction:sqlstring} = 'any') r\n  GROUP BY pr_id\n),\nfinal_approval AS (\n  -- D9: the last APPROVED review before the merge\n  SELECT hr.pr_id, MAX(hr.created_date) AS at_time\n  FROM human_reviews hr\n  JOIN pr_base p ON p.id = hr.pr_id\n  WHERE hr.status = 'APPROVED' AND p.merged_date IS NOT NULL AND hr.created_date < p.merged_date\n  GROUP BY hr.pr_id\n),\ntool_commits AS (\n  -- ADJUSTMENT POINT (ADR 0002 D15): where the text of a commit of a PR is read from when `commits` has none. The default is the\n  -- tool-layer table of DevLake's GitHub plugin (primary key sha only, no connection column; `message` is the text of the commit as GitHub\n  -- gave it). That table exists only when the GitHub plugin was built (a DevLake built with DEVLAKE_PLUGINS=gitlab,... does not have it): in\n  -- that case replace the line below by an empty list with the same two columns, and the SQL reads `commits` only:\n  --   SELECT CAST(NULL AS CHAR(40)) AS sha, CAST(NULL AS CHAR) AS message FROM (SELECT 1) one WHERE 1 = 0\n  SELECT t.sha, t.message FROM _tool_github_commits t\n),\npr_commit AS (\n  -- commits and tool_commits are joined with LEFT JOIN: a PR whose message is in neither stays in every count\n  SELECT\n    prc.pull_request_id AS pr_id,\n    prc.commit_sha,\n    prc.commit_author_name,\n    prc.commit_author_email,\n    prc.commit_authored_date,\n    -- the text of the commit (ADR 0002 D15): the domain-layer `commits.message` first, then the tool table. commits.message is a longblob in a\n    -- real DevLake (ADR 0002 A2): LOWER() and REGEXP_LIKE() on a binary string are case-sensitive, so the text is converted first. An empty\n    -- text counts as no text (NULLIF), so the tool table is read then, too.\n    COALESCE(NULLIF(CONVERT(cm.message USING utf8mb4), ''), t.message) AS message,\n    -- 1 when the text of this commit came from the tool table (the domain-layer text is missing or empty and the tool table has one)\n    CASE WHEN NULLIF(CONVERT(cm.message USING utf8mb4), '') IS NULL AND t.message IS NOT NULL THEN 1 ELSE 0 END AS from_tool,\n    MIN(prc.commit_authored_date) OVER (PARTITION BY prc.pull_request_id) AS first_commit_at\n  FROM pull_request_commits prc\n  JOIN pr_base p ON p.id = prc.pull_request_id\n  LEFT JOIN commits cm ON cm.sha = prc.commit_sha\n  LEFT JOIN tool_commits t ON t.sha = prc.commit_sha\n),\nmarks AS (\n  -- m1: the PR author is a cloud agent\n  SELECT p.id AS pr_id, i.tool, 'm1' AS mark\n  FROM pr_base p\n  JOIN identities i ON i.mode = 'cloud' AND i.field = 'pr_author' AND REGEXP_LIKE(LOWER(p.author_login), i.pattern)\n  UNION\n  -- m2: the first commit (D10: all commits with the earliest time) is authored by a cloud agent, by name or e-mail\n  SELECT pc.pr_id, i.tool, 'm2'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode = 'cloud'\n   AND pc.commit_authored_date = pc.first_commit_at\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m3: any commit is authored by an AI tool\n  SELECT pc.pr_id, i.tool, 'm3'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist')\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m4: a Co-authored-by line of an AI tool, at the start of a line (real line breaks, or the JSON-string shape)\n  SELECT pc.pr_id, i.tool, 'm4'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist') AND i.field = 'coauthor'\n   AND (REGEXP_LIKE(LOWER(pc.message), CONCAT('^co-authored-by:[ \\\\t]*(?:', i.pattern, ')'), 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), CONCAT('(^\"?|\\\\\\\\n)co-authored-by:[ \\\\t]*(?:', i.pattern, ')')))\n  UNION\n  -- m5: a \"Made-with: Cursor\" line, at the start of a line\n  SELECT pc.pr_id, 'cursor', 'm5'\n  FROM pr_commit pc\n  WHERE REGEXP_LIKE(LOWER(pc.message), '^made-with:[ \\\\t]*cursor\\\\b', 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), '(^\"?|\\\\\\\\n)made-with:[ \\\\t]*cursor\\\\b')\n  UNION\n  -- m6: a review row (REVIEW or a line comment of a review, D13) written by a review agent\n  SELECT c.pull_request_id, i.tool, 'm6'\n  FROM valid_comments c\n  JOIN identities i ON i.mode = 'review' AND i.field = 'review_author' AND REGEXP_LIKE(LOWER(c.user_name), i.pattern)\n  WHERE c.type IN ('REVIEW', 'DIFF')\n  UNION\n  -- x1 (own marker): head_ref prefix\n  SELECT p.id, x.tool, 'x1'\n  FROM pr_base p\n  JOIN (SELECT 'copilot/' AS prefix, 'copilot' AS tool\n        UNION ALL SELECT 'codex/', 'codex'\n        UNION ALL SELECT 'cursor/', 'cursor'\n        UNION ALL SELECT 'devin/', 'devin'\n        UNION ALL SELECT 'claude/', 'claude') x ON p.head_ref LIKE CONCAT(x.prefix, '%')\n  WHERE ${include_own_markers:sqlstring} = '1'\n  UNION\n  -- x2 (own marker): the PR body has Co-Authored-By: Claude\n  SELECT p.id, 'claude', 'x2'\n  FROM pr_base p\n  WHERE ${include_own_markers:sqlstring} = '1' AND LOWER(p.description) LIKE '%co-authored-by: claude%'\n),\nmarks_sel AS (\n  -- the selection of the dashboard (ADR 0002 D17), made on the marks of every kind, also m5, x1 and x2 whose tool is written in this file and\n  -- not read from identities: the tool of the mark is included, and the mode that the mark gives is included\n  SELECT m.pr_id, m.tool, m.mark\n  FROM marks m\n  WHERE m.tool IN (${tools:sqlstring})\n    AND CASE WHEN m.mark IN ('m1', 'm2') THEN 'cloud'\n             WHEN m.mark = 'm6' THEN 'review'\n             ELSE 'assist' END IN (${modes:sqlstring})\n),\npr_tool AS (\n  SELECT DISTINCT pr_id, tool FROM marks_sel\n),\npr_mode AS (\n  SELECT pr_id, 'cloud_agent' AS mode FROM marks_sel WHERE mark IN ('m1', 'm2')\n  UNION\n  SELECT pr_id, 'ai_assisted' FROM marks_sel WHERE mark IN ('m3', 'm4', 'm5', 'x1', 'x2')\n  UNION\n  SELECT pr_id, 'review_agent' FROM marks_sel WHERE mark = 'm6'\n),\npr_cloud_tool AS (\n  -- the tools whose cloud agent opened the PR or made its first commit (m1, m2)\n  SELECT DISTINCT pr_id, tool FROM marks_sel WHERE mark IN ('m1', 'm2')\n),\npr_group AS (\n  SELECT pr_id, CONCAT('tool:', tool) AS grp FROM pr_tool\n  UNION ALL\n  SELECT p.id, 'tool:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_tool t WHERE t.pr_id = p.id)\n  UNION ALL\n  SELECT pr_id, CONCAT('mode:', mode) FROM pr_mode\n  UNION ALL\n  SELECT DISTINCT pr_id, 'mode:ai_used' FROM pr_mode\n  UNION ALL\n  SELECT p.id, 'mode:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_mode m WHERE m.pr_id = p.id)\n),\nfirst_commit AS (\n  SELECT DISTINCT pr_id, first_commit_at FROM pr_commit\n),\npr_facts AS (\n  SELECT\n    p.id,\n    p.status,\n    p.size,\n    p.in_created,\n    p.in_merged,\n    -- time to first review: from the PR being opened (D1) to the first human review\n    TIMESTAMPDIFF(MINUTE, p.created_date, fr.at_time) AS ttfr_min,\n    -- time in review: from the PR being opened (D1) to the final approval, or to the merge (D5); merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, p.created_date, COALESCE(fa.at_time, p.merged_date)) END AS tir_min,\n    -- cycle time: from the first commit or the opening of the PR, whichever is earlier, to the merge; merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, LEAST(p.created_date, COALESCE(fc.first_commit_at, p.created_date)), p.merged_date) END AS cycle_min,\n    CASE WHEN p.merged_date IS NOT NULL THEN YEARWEEK(p.merged_date, 3) END AS yw           -- D6: ISO week, Monday first\n  FROM pr_base p\n  LEFT JOIN first_review fr ON fr.pr_id = p.id\n  LEFT JOIN final_approval fa ON fa.pr_id = p.id\n  LEFT JOIN first_commit fc ON fc.pr_id = p.id\n),\ngrp_vals AS (\n  SELECT g.grp, 'ttfr' AS m, f.ttfr_min AS v\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1 AND f.ttfr_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'tir', f.tir_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.tir_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'cycle', f.cycle_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.cycle_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'size', f.size\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1\n),\ngrp_ranked AS (\n  SELECT grp, m, v, percent_rank() OVER (PARTITION BY grp, m ORDER BY v) AS rk\n  FROM grp_vals\n),\ngrp_stats AS (\n  SELECT grp, m, COUNT(*) AS n, AVG(v) AS mean_v, MAX(CASE WHEN rk <= 0.5 THEN v END) AS median_v\n  FROM grp_ranked\n  GROUP BY grp, m\n), metric AS (\n-- additions + deletions of PRs opened in the period. Generated files are NOT excluded (see ADR 0002).\n-- Buckets as the benchmarks of the page named in ADR 0002 (batch_size): under 200, 200..499, 500 and over.\nSELECT\n  ag.grp,\n  COALESCE(s.n, 0) AS prs,\n  s.mean_v AS mean_size,\n  s.median_v AS median_size,\n  b.share_lt200,\n  b.share_200_499,\n  b.share_ge500\nFROM all_groups ag\nLEFT JOIN grp_stats s ON s.grp = ag.grp AND s.m = 'size'\nLEFT JOIN (\n  SELECT grp,\n         AVG(CASE WHEN v < 200 THEN 1 ELSE 0 END) AS share_lt200,\n         AVG(CASE WHEN v >= 200 AND v < 500 THEN 1 ELSE 0 END) AS share_200_499,\n         AVG(CASE WHEN v >= 500 THEN 1 ELSE 0 END) AS share_ge500\n  FROM grp_vals WHERE m = 'size' GROUP BY grp\n) b ON b.grp = ag.grp\nORDER BY ag.grp\n)\nSELECT * FROM metric\nWHERE (${comparison:sqlstring} = 'tools' AND grp LIKE 'tool:%' AND grp NOT LIKE '%|%')\n   OR (${comparison:sqlstring} = 'modes' AND grp IN ('mode:cloud_agent', 'mode:ai_assisted', 'mode:review_agent', 'mode:everything_else'))\n   OR (${comparison:sqlstring} = 'ai_used' AND grp IN ('mode:ai_used', 'mode:everything_else'))\nORDER BY grp",
+          "refId": "A"
+        }
+      ],
+      "title": "PR の大きさ（Batch size）",
+      "type": "table",
+      "description": "PR の大きさ（追加した行 + 消した行）の平均と中央値、200 行未満・200〜499 行・500 行以上の割合。"
+    },
+    {
+      "datasource": {
+        "type": "mysql",
+        "uid": "devlake-mysql-api"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "grp"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "群（週は ISO 週、月曜始まり）"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "merged"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "マージした PR 数"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "merged_cloud_agent"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "cloud agent"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "merged_ai_assisted"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "AI-assisted"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "merged_review_agent"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "review agent"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "merged_ai_used"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "AI を使った"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "merged_everything_else"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "それ以外"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "id": 16,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "mysql",
+            "uid": "devlake-mysql-api"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH identities(tool, mode, field, pattern) AS (\n  -- tool, mode (cloud | assist | review), field (pr_author | commit_author_name | commit_author_email |\n  -- coauthor | review_author), pattern (lower case). Add or remove rows here per company.\n  -- Basis of each row: docs/agent_identities.md.\n  SELECT 'copilot', 'cloud', 'pr_author', '^(copilot|copilot-swe-agent\\\\[bot\\\\])$'\n  UNION ALL SELECT 'copilot', 'review', 'review_author', '^(copilot|copilot-pull-request-reviewer\\\\[bot\\\\])$'\n  UNION ALL SELECT 'cursor', 'cloud', 'pr_author', '^cursor\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_name', '^cursor agent$'                   -- git name seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_email', '^cursoragent@cursor\\\\.com$'       -- git e-mail seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'claude', 'cloud', 'pr_author', '^claude\\\\[bot\\\\]$'\n  UNION ALL SELECT 'claude', 'cloud', 'commit_author_name', '^claude$'\n  UNION ALL SELECT 'claude', 'assist', 'coauthor', 'claude\\\\b'\n  UNION ALL SELECT 'codex', 'cloud', 'pr_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'codex', 'review', 'review_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'cloud', 'pr_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'review', 'review_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'cloud', 'pr_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'review', 'review_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'cloud', 'pr_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'review', 'review_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'cloud', 'pr_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'review', 'review_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'cloud', 'pr_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'review', 'review_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'cloud', 'pr_author', '^qodo-code-review\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'review', 'review_author', '^qodo-code-review\\\\[bot\\\\]$'\n  -- CUSTOM-TOOLS-INSERT-POINT: tools/build_dashboard.py puts the rows of --custom-tools on the lines after this one (docs/dashboard.md)\n),\nall_groups AS (\n  -- the tool rows of the selected tools only (an excluded tool has no row on the dashboard)\n  SELECT DISTINCT CONCAT('tool:', tool) AS grp FROM identities WHERE tool IN (${tools:sqlstring})\n  UNION ALL SELECT 'tool:everything_else'\n  UNION ALL SELECT 'mode:cloud_agent'\n  UNION ALL SELECT 'mode:ai_assisted'\n  UNION ALL SELECT 'mode:review_agent'\n  UNION ALL SELECT 'mode:ai_used'\n  UNION ALL SELECT 'mode:everything_else'\n),\nacct AS (\n  SELECT\n    a.id,\n    a.user_name,\n    -- bot (D11): the is_bot flag, U1's agent bot names, or a login of the identities list\n    CASE WHEN COALESCE(a.is_bot, 0) = 1\n           OR a.user_name IN ('Copilot', 'copilot-swe-agent[bot]', 'devin-ai-integration[bot]')\n           OR EXISTS (SELECT 1 FROM identities i\n                       WHERE i.field IN ('pr_author', 'review_author')\n                         AND REGEXP_LIKE(LOWER(a.user_name), i.pattern))\n         THEN 1 ELSE 0 END AS is_bot\n  FROM accounts a\n),\npr_base AS (\n  -- every PR that was opened or merged in the period; the metrics pick in_created or in_merged (D12)\n  SELECT\n    pr.id,\n    pr.author_id,\n    -- the login of the PR author: the account row (accounts.user_name, \"cursor[bot]\") when there is one; DevLake's\n    -- GraphQL path stores pull_requests.author_name without \"[bot]\" (\"cursor\"), so that column is used only when the\n    -- account row is missing (ADR 0002 A1)\n    CASE WHEN au.id IS NULL THEN pr.author_name ELSE au.user_name END AS author_login,\n    pr.status,\n    pr.created_date,\n    pr.merged_date,\n    pr.head_ref,\n    pr.description,\n    COALESCE(pr.additions, 0) + COALESCE(pr.deletions, 0) AS size,\n    CASE WHEN $__timeFilter(pr.created_date) THEN 1 ELSE 0 END AS in_created,\n    CASE WHEN $__timeFilter(pr.merged_date) THEN 1 ELSE 0 END AS in_merged\n  FROM pull_requests pr\n  LEFT JOIN accounts au ON au.id = pr.author_id\n  WHERE ($__timeFilter(pr.created_date) OR $__timeFilter(pr.merged_date))\n    AND pr.base_repo_id IN (${repo_id})\n),\nvalid_comments AS (\n  SELECT\n    c.pull_request_id,\n    c.account_id,\n    c.created_date,\n    c.type,\n    c.status,\n    ca.user_name,\n    COALESCE(ca.is_bot, 0) AS is_bot\n  FROM pull_request_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  LEFT JOIN acct ca ON ca.id = c.account_id\n  WHERE NOT (c.type = 'REVIEW' AND COALESCE(c.status, '') = 'PENDING')                       -- unsent reviews out (as in U1)\n),\nhuman_reviews AS (\n  -- review rows of people: not a bot, not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date, c.status\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type = 'REVIEW'\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nhuman_reactions AS (\n  -- ADR 0002 D16: the rows of people that are U1's first human reaction: a review row, a NORMAL comment or a line comment (DIFF); unsent\n  -- reviews are already out of valid_comments; not a bot (D11), not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type IN ('REVIEW', 'NORMAL', 'DIFF')\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nfirst_review AS (\n  -- D2: the first submitted review of any state (approved, changes requested, commented, dismissed).\n  -- D16: when the dashboard variable first_reaction is 'any', the end of the wait is the first human reaction of any of the three kinds\n  SELECT pr_id, MIN(created_date) AS at_time\n  FROM (SELECT pr_id, created_date FROM human_reviews WHERE ${first_reaction:sqlstring} <> 'any'\n        UNION ALL\n        SELECT pr_id, created_date FROM human_reactions WHERE ${first_reaction:sqlstring} = 'any') r\n  GROUP BY pr_id\n),\nfinal_approval AS (\n  -- D9: the last APPROVED review before the merge\n  SELECT hr.pr_id, MAX(hr.created_date) AS at_time\n  FROM human_reviews hr\n  JOIN pr_base p ON p.id = hr.pr_id\n  WHERE hr.status = 'APPROVED' AND p.merged_date IS NOT NULL AND hr.created_date < p.merged_date\n  GROUP BY hr.pr_id\n),\ntool_commits AS (\n  -- ADJUSTMENT POINT (ADR 0002 D15): where the text of a commit of a PR is read from when `commits` has none. The default is the\n  -- tool-layer table of DevLake's GitHub plugin (primary key sha only, no connection column; `message` is the text of the commit as GitHub\n  -- gave it). That table exists only when the GitHub plugin was built (a DevLake built with DEVLAKE_PLUGINS=gitlab,... does not have it): in\n  -- that case replace the line below by an empty list with the same two columns, and the SQL reads `commits` only:\n  --   SELECT CAST(NULL AS CHAR(40)) AS sha, CAST(NULL AS CHAR) AS message FROM (SELECT 1) one WHERE 1 = 0\n  SELECT t.sha, t.message FROM _tool_github_commits t\n),\npr_commit AS (\n  -- commits and tool_commits are joined with LEFT JOIN: a PR whose message is in neither stays in every count\n  SELECT\n    prc.pull_request_id AS pr_id,\n    prc.commit_sha,\n    prc.commit_author_name,\n    prc.commit_author_email,\n    prc.commit_authored_date,\n    -- the text of the commit (ADR 0002 D15): the domain-layer `commits.message` first, then the tool table. commits.message is a longblob in a\n    -- real DevLake (ADR 0002 A2): LOWER() and REGEXP_LIKE() on a binary string are case-sensitive, so the text is converted first. An empty\n    -- text counts as no text (NULLIF), so the tool table is read then, too.\n    COALESCE(NULLIF(CONVERT(cm.message USING utf8mb4), ''), t.message) AS message,\n    -- 1 when the text of this commit came from the tool table (the domain-layer text is missing or empty and the tool table has one)\n    CASE WHEN NULLIF(CONVERT(cm.message USING utf8mb4), '') IS NULL AND t.message IS NOT NULL THEN 1 ELSE 0 END AS from_tool,\n    MIN(prc.commit_authored_date) OVER (PARTITION BY prc.pull_request_id) AS first_commit_at\n  FROM pull_request_commits prc\n  JOIN pr_base p ON p.id = prc.pull_request_id\n  LEFT JOIN commits cm ON cm.sha = prc.commit_sha\n  LEFT JOIN tool_commits t ON t.sha = prc.commit_sha\n),\nmarks AS (\n  -- m1: the PR author is a cloud agent\n  SELECT p.id AS pr_id, i.tool, 'm1' AS mark\n  FROM pr_base p\n  JOIN identities i ON i.mode = 'cloud' AND i.field = 'pr_author' AND REGEXP_LIKE(LOWER(p.author_login), i.pattern)\n  UNION\n  -- m2: the first commit (D10: all commits with the earliest time) is authored by a cloud agent, by name or e-mail\n  SELECT pc.pr_id, i.tool, 'm2'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode = 'cloud'\n   AND pc.commit_authored_date = pc.first_commit_at\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m3: any commit is authored by an AI tool\n  SELECT pc.pr_id, i.tool, 'm3'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist')\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m4: a Co-authored-by line of an AI tool, at the start of a line (real line breaks, or the JSON-string shape)\n  SELECT pc.pr_id, i.tool, 'm4'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist') AND i.field = 'coauthor'\n   AND (REGEXP_LIKE(LOWER(pc.message), CONCAT('^co-authored-by:[ \\\\t]*(?:', i.pattern, ')'), 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), CONCAT('(^\"?|\\\\\\\\n)co-authored-by:[ \\\\t]*(?:', i.pattern, ')')))\n  UNION\n  -- m5: a \"Made-with: Cursor\" line, at the start of a line\n  SELECT pc.pr_id, 'cursor', 'm5'\n  FROM pr_commit pc\n  WHERE REGEXP_LIKE(LOWER(pc.message), '^made-with:[ \\\\t]*cursor\\\\b', 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), '(^\"?|\\\\\\\\n)made-with:[ \\\\t]*cursor\\\\b')\n  UNION\n  -- m6: a review row (REVIEW or a line comment of a review, D13) written by a review agent\n  SELECT c.pull_request_id, i.tool, 'm6'\n  FROM valid_comments c\n  JOIN identities i ON i.mode = 'review' AND i.field = 'review_author' AND REGEXP_LIKE(LOWER(c.user_name), i.pattern)\n  WHERE c.type IN ('REVIEW', 'DIFF')\n  UNION\n  -- x1 (own marker): head_ref prefix\n  SELECT p.id, x.tool, 'x1'\n  FROM pr_base p\n  JOIN (SELECT 'copilot/' AS prefix, 'copilot' AS tool\n        UNION ALL SELECT 'codex/', 'codex'\n        UNION ALL SELECT 'cursor/', 'cursor'\n        UNION ALL SELECT 'devin/', 'devin'\n        UNION ALL SELECT 'claude/', 'claude') x ON p.head_ref LIKE CONCAT(x.prefix, '%')\n  WHERE ${include_own_markers:sqlstring} = '1'\n  UNION\n  -- x2 (own marker): the PR body has Co-Authored-By: Claude\n  SELECT p.id, 'claude', 'x2'\n  FROM pr_base p\n  WHERE ${include_own_markers:sqlstring} = '1' AND LOWER(p.description) LIKE '%co-authored-by: claude%'\n),\nmarks_sel AS (\n  -- the selection of the dashboard (ADR 0002 D17), made on the marks of every kind, also m5, x1 and x2 whose tool is written in this file and\n  -- not read from identities: the tool of the mark is included, and the mode that the mark gives is included\n  SELECT m.pr_id, m.tool, m.mark\n  FROM marks m\n  WHERE m.tool IN (${tools:sqlstring})\n    AND CASE WHEN m.mark IN ('m1', 'm2') THEN 'cloud'\n             WHEN m.mark = 'm6' THEN 'review'\n             ELSE 'assist' END IN (${modes:sqlstring})\n),\npr_tool AS (\n  SELECT DISTINCT pr_id, tool FROM marks_sel\n),\npr_mode AS (\n  SELECT pr_id, 'cloud_agent' AS mode FROM marks_sel WHERE mark IN ('m1', 'm2')\n  UNION\n  SELECT pr_id, 'ai_assisted' FROM marks_sel WHERE mark IN ('m3', 'm4', 'm5', 'x1', 'x2')\n  UNION\n  SELECT pr_id, 'review_agent' FROM marks_sel WHERE mark = 'm6'\n),\npr_cloud_tool AS (\n  -- the tools whose cloud agent opened the PR or made its first commit (m1, m2)\n  SELECT DISTINCT pr_id, tool FROM marks_sel WHERE mark IN ('m1', 'm2')\n),\npr_group AS (\n  SELECT pr_id, CONCAT('tool:', tool) AS grp FROM pr_tool\n  UNION ALL\n  SELECT p.id, 'tool:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_tool t WHERE t.pr_id = p.id)\n  UNION ALL\n  SELECT pr_id, CONCAT('mode:', mode) FROM pr_mode\n  UNION ALL\n  SELECT DISTINCT pr_id, 'mode:ai_used' FROM pr_mode\n  UNION ALL\n  SELECT p.id, 'mode:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_mode m WHERE m.pr_id = p.id)\n),\nfirst_commit AS (\n  SELECT DISTINCT pr_id, first_commit_at FROM pr_commit\n),\npr_facts AS (\n  SELECT\n    p.id,\n    p.status,\n    p.size,\n    p.in_created,\n    p.in_merged,\n    -- time to first review: from the PR being opened (D1) to the first human review\n    TIMESTAMPDIFF(MINUTE, p.created_date, fr.at_time) AS ttfr_min,\n    -- time in review: from the PR being opened (D1) to the final approval, or to the merge (D5); merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, p.created_date, COALESCE(fa.at_time, p.merged_date)) END AS tir_min,\n    -- cycle time: from the first commit or the opening of the PR, whichever is earlier, to the merge; merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, LEAST(p.created_date, COALESCE(fc.first_commit_at, p.created_date)), p.merged_date) END AS cycle_min,\n    CASE WHEN p.merged_date IS NOT NULL THEN YEARWEEK(p.merged_date, 3) END AS yw           -- D6: ISO week, Monday first\n  FROM pr_base p\n  LEFT JOIN first_review fr ON fr.pr_id = p.id\n  LEFT JOIN final_approval fa ON fa.pr_id = p.id\n  LEFT JOIN first_commit fc ON fc.pr_id = p.id\n),\ngrp_vals AS (\n  SELECT g.grp, 'ttfr' AS m, f.ttfr_min AS v\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1 AND f.ttfr_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'tir', f.tir_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.tir_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'cycle', f.cycle_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.cycle_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'size', f.size\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1\n),\ngrp_ranked AS (\n  SELECT grp, m, v, percent_rank() OVER (PARTITION BY grp, m ORDER BY v) AS rk\n  FROM grp_vals\n),\ngrp_stats AS (\n  SELECT grp, m, COUNT(*) AS n, AVG(v) AS mean_v, MAX(CASE WHEN rk <= 0.5 THEN v END) AS median_v\n  FROM grp_ranked\n  GROUP BY grp, m\n), metric AS (\n-- Merged PRs merged in the period. tool:/mode: rows = the period total of the group.\n-- week:<YEARWEEK(merged_date, 3)> rows = the PRs merged in that week, all and per mode.\n-- tool:<name>|week:<YEARWEEK> rows = the PRs of that tool merged in that week (only the combinations that have one).\nSELECT\n  ag.grp,\n  COALESCE(s.merged, 0) AS merged,\n  NULL AS merged_cloud_agent,\n  NULL AS merged_ai_assisted,\n  NULL AS merged_review_agent,\n  NULL AS merged_ai_used,\n  NULL AS merged_everything_else\nFROM all_groups ag\nLEFT JOIN (\n  SELECT g.grp, COUNT(*) AS merged\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1\n  GROUP BY g.grp\n) s ON s.grp = ag.grp\nUNION ALL\nSELECT\n  CONCAT('week:', f.yw),\n  COUNT(*),\n  SUM(CASE WHEN EXISTS (SELECT 1 FROM pr_group g WHERE g.pr_id = f.id AND g.grp = 'mode:cloud_agent') THEN 1 ELSE 0 END),\n  SUM(CASE WHEN EXISTS (SELECT 1 FROM pr_group g WHERE g.pr_id = f.id AND g.grp = 'mode:ai_assisted') THEN 1 ELSE 0 END),\n  SUM(CASE WHEN EXISTS (SELECT 1 FROM pr_group g WHERE g.pr_id = f.id AND g.grp = 'mode:review_agent') THEN 1 ELSE 0 END),\n  SUM(CASE WHEN EXISTS (SELECT 1 FROM pr_group g WHERE g.pr_id = f.id AND g.grp = 'mode:ai_used') THEN 1 ELSE 0 END),\n  SUM(CASE WHEN EXISTS (SELECT 1 FROM pr_group g WHERE g.pr_id = f.id AND g.grp = 'mode:everything_else') THEN 1 ELSE 0 END)\nFROM pr_facts f\nWHERE f.in_merged = 1\nGROUP BY f.yw\nUNION ALL\nSELECT\n  CONCAT(g.grp, '|week:', f.yw),\n  COUNT(*),\n  NULL, NULL, NULL, NULL, NULL\nFROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\nWHERE f.in_merged = 1 AND g.grp LIKE 'tool:%'\nGROUP BY g.grp, f.yw\nORDER BY 1\n)\nSELECT * FROM metric\nWHERE (${comparison:sqlstring} = 'tools' AND grp LIKE 'tool:%|week:%')\n   OR (${comparison:sqlstring} IN ('modes', 'ai_used') AND grp LIKE 'week:%')\nORDER BY grp",
+          "refId": "A"
+        }
+      ],
+      "title": "週ごとの PR のマージ数（PRs merged per week）",
+      "type": "table",
+      "description": "マージした PR の数を ISO 週（月曜始まり）ごとに。AI ツール別は群ごと、使い方別は使い方の列。"
+    },
+    {
+      "datasource": {
+        "type": "mysql",
+        "uid": "devlake-mysql-api"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "grp"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "群"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "prs"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "開いた PR 数"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "merged"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "マージ"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "closed"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "閉じた"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "open"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "開いたまま"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
+      "id": 17,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "mysql",
+            "uid": "devlake-mysql-api"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH identities(tool, mode, field, pattern) AS (\n  -- tool, mode (cloud | assist | review), field (pr_author | commit_author_name | commit_author_email |\n  -- coauthor | review_author), pattern (lower case). Add or remove rows here per company.\n  -- Basis of each row: docs/agent_identities.md.\n  SELECT 'copilot', 'cloud', 'pr_author', '^(copilot|copilot-swe-agent\\\\[bot\\\\])$'\n  UNION ALL SELECT 'copilot', 'review', 'review_author', '^(copilot|copilot-pull-request-reviewer\\\\[bot\\\\])$'\n  UNION ALL SELECT 'cursor', 'cloud', 'pr_author', '^cursor\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_name', '^cursor agent$'                   -- git name seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_email', '^cursoragent@cursor\\\\.com$'       -- git e-mail seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'claude', 'cloud', 'pr_author', '^claude\\\\[bot\\\\]$'\n  UNION ALL SELECT 'claude', 'cloud', 'commit_author_name', '^claude$'\n  UNION ALL SELECT 'claude', 'assist', 'coauthor', 'claude\\\\b'\n  UNION ALL SELECT 'codex', 'cloud', 'pr_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'codex', 'review', 'review_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'cloud', 'pr_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'review', 'review_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'cloud', 'pr_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'review', 'review_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'cloud', 'pr_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'review', 'review_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'cloud', 'pr_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'review', 'review_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'cloud', 'pr_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'review', 'review_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'cloud', 'pr_author', '^qodo-code-review\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'review', 'review_author', '^qodo-code-review\\\\[bot\\\\]$'\n  -- CUSTOM-TOOLS-INSERT-POINT: tools/build_dashboard.py puts the rows of --custom-tools on the lines after this one (docs/dashboard.md)\n),\nall_groups AS (\n  -- the tool rows of the selected tools only (an excluded tool has no row on the dashboard)\n  SELECT DISTINCT CONCAT('tool:', tool) AS grp FROM identities WHERE tool IN (${tools:sqlstring})\n  UNION ALL SELECT 'tool:everything_else'\n  UNION ALL SELECT 'mode:cloud_agent'\n  UNION ALL SELECT 'mode:ai_assisted'\n  UNION ALL SELECT 'mode:review_agent'\n  UNION ALL SELECT 'mode:ai_used'\n  UNION ALL SELECT 'mode:everything_else'\n),\nacct AS (\n  SELECT\n    a.id,\n    a.user_name,\n    -- bot (D11): the is_bot flag, U1's agent bot names, or a login of the identities list\n    CASE WHEN COALESCE(a.is_bot, 0) = 1\n           OR a.user_name IN ('Copilot', 'copilot-swe-agent[bot]', 'devin-ai-integration[bot]')\n           OR EXISTS (SELECT 1 FROM identities i\n                       WHERE i.field IN ('pr_author', 'review_author')\n                         AND REGEXP_LIKE(LOWER(a.user_name), i.pattern))\n         THEN 1 ELSE 0 END AS is_bot\n  FROM accounts a\n),\npr_base AS (\n  -- every PR that was opened or merged in the period; the metrics pick in_created or in_merged (D12)\n  SELECT\n    pr.id,\n    pr.author_id,\n    -- the login of the PR author: the account row (accounts.user_name, \"cursor[bot]\") when there is one; DevLake's\n    -- GraphQL path stores pull_requests.author_name without \"[bot]\" (\"cursor\"), so that column is used only when the\n    -- account row is missing (ADR 0002 A1)\n    CASE WHEN au.id IS NULL THEN pr.author_name ELSE au.user_name END AS author_login,\n    pr.status,\n    pr.created_date,\n    pr.merged_date,\n    pr.head_ref,\n    pr.description,\n    COALESCE(pr.additions, 0) + COALESCE(pr.deletions, 0) AS size,\n    CASE WHEN $__timeFilter(pr.created_date) THEN 1 ELSE 0 END AS in_created,\n    CASE WHEN $__timeFilter(pr.merged_date) THEN 1 ELSE 0 END AS in_merged\n  FROM pull_requests pr\n  LEFT JOIN accounts au ON au.id = pr.author_id\n  WHERE ($__timeFilter(pr.created_date) OR $__timeFilter(pr.merged_date))\n    AND pr.base_repo_id IN (${repo_id})\n),\nvalid_comments AS (\n  SELECT\n    c.pull_request_id,\n    c.account_id,\n    c.created_date,\n    c.type,\n    c.status,\n    ca.user_name,\n    COALESCE(ca.is_bot, 0) AS is_bot\n  FROM pull_request_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  LEFT JOIN acct ca ON ca.id = c.account_id\n  WHERE NOT (c.type = 'REVIEW' AND COALESCE(c.status, '') = 'PENDING')                       -- unsent reviews out (as in U1)\n),\nhuman_reviews AS (\n  -- review rows of people: not a bot, not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date, c.status\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type = 'REVIEW'\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nhuman_reactions AS (\n  -- ADR 0002 D16: the rows of people that are U1's first human reaction: a review row, a NORMAL comment or a line comment (DIFF); unsent\n  -- reviews are already out of valid_comments; not a bot (D11), not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type IN ('REVIEW', 'NORMAL', 'DIFF')\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nfirst_review AS (\n  -- D2: the first submitted review of any state (approved, changes requested, commented, dismissed).\n  -- D16: when the dashboard variable first_reaction is 'any', the end of the wait is the first human reaction of any of the three kinds\n  SELECT pr_id, MIN(created_date) AS at_time\n  FROM (SELECT pr_id, created_date FROM human_reviews WHERE ${first_reaction:sqlstring} <> 'any'\n        UNION ALL\n        SELECT pr_id, created_date FROM human_reactions WHERE ${first_reaction:sqlstring} = 'any') r\n  GROUP BY pr_id\n),\nfinal_approval AS (\n  -- D9: the last APPROVED review before the merge\n  SELECT hr.pr_id, MAX(hr.created_date) AS at_time\n  FROM human_reviews hr\n  JOIN pr_base p ON p.id = hr.pr_id\n  WHERE hr.status = 'APPROVED' AND p.merged_date IS NOT NULL AND hr.created_date < p.merged_date\n  GROUP BY hr.pr_id\n),\ntool_commits AS (\n  -- ADJUSTMENT POINT (ADR 0002 D15): where the text of a commit of a PR is read from when `commits` has none. The default is the\n  -- tool-layer table of DevLake's GitHub plugin (primary key sha only, no connection column; `message` is the text of the commit as GitHub\n  -- gave it). That table exists only when the GitHub plugin was built (a DevLake built with DEVLAKE_PLUGINS=gitlab,... does not have it): in\n  -- that case replace the line below by an empty list with the same two columns, and the SQL reads `commits` only:\n  --   SELECT CAST(NULL AS CHAR(40)) AS sha, CAST(NULL AS CHAR) AS message FROM (SELECT 1) one WHERE 1 = 0\n  SELECT t.sha, t.message FROM _tool_github_commits t\n),\npr_commit AS (\n  -- commits and tool_commits are joined with LEFT JOIN: a PR whose message is in neither stays in every count\n  SELECT\n    prc.pull_request_id AS pr_id,\n    prc.commit_sha,\n    prc.commit_author_name,\n    prc.commit_author_email,\n    prc.commit_authored_date,\n    -- the text of the commit (ADR 0002 D15): the domain-layer `commits.message` first, then the tool table. commits.message is a longblob in a\n    -- real DevLake (ADR 0002 A2): LOWER() and REGEXP_LIKE() on a binary string are case-sensitive, so the text is converted first. An empty\n    -- text counts as no text (NULLIF), so the tool table is read then, too.\n    COALESCE(NULLIF(CONVERT(cm.message USING utf8mb4), ''), t.message) AS message,\n    -- 1 when the text of this commit came from the tool table (the domain-layer text is missing or empty and the tool table has one)\n    CASE WHEN NULLIF(CONVERT(cm.message USING utf8mb4), '') IS NULL AND t.message IS NOT NULL THEN 1 ELSE 0 END AS from_tool,\n    MIN(prc.commit_authored_date) OVER (PARTITION BY prc.pull_request_id) AS first_commit_at\n  FROM pull_request_commits prc\n  JOIN pr_base p ON p.id = prc.pull_request_id\n  LEFT JOIN commits cm ON cm.sha = prc.commit_sha\n  LEFT JOIN tool_commits t ON t.sha = prc.commit_sha\n),\nmarks AS (\n  -- m1: the PR author is a cloud agent\n  SELECT p.id AS pr_id, i.tool, 'm1' AS mark\n  FROM pr_base p\n  JOIN identities i ON i.mode = 'cloud' AND i.field = 'pr_author' AND REGEXP_LIKE(LOWER(p.author_login), i.pattern)\n  UNION\n  -- m2: the first commit (D10: all commits with the earliest time) is authored by a cloud agent, by name or e-mail\n  SELECT pc.pr_id, i.tool, 'm2'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode = 'cloud'\n   AND pc.commit_authored_date = pc.first_commit_at\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m3: any commit is authored by an AI tool\n  SELECT pc.pr_id, i.tool, 'm3'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist')\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m4: a Co-authored-by line of an AI tool, at the start of a line (real line breaks, or the JSON-string shape)\n  SELECT pc.pr_id, i.tool, 'm4'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist') AND i.field = 'coauthor'\n   AND (REGEXP_LIKE(LOWER(pc.message), CONCAT('^co-authored-by:[ \\\\t]*(?:', i.pattern, ')'), 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), CONCAT('(^\"?|\\\\\\\\n)co-authored-by:[ \\\\t]*(?:', i.pattern, ')')))\n  UNION\n  -- m5: a \"Made-with: Cursor\" line, at the start of a line\n  SELECT pc.pr_id, 'cursor', 'm5'\n  FROM pr_commit pc\n  WHERE REGEXP_LIKE(LOWER(pc.message), '^made-with:[ \\\\t]*cursor\\\\b', 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), '(^\"?|\\\\\\\\n)made-with:[ \\\\t]*cursor\\\\b')\n  UNION\n  -- m6: a review row (REVIEW or a line comment of a review, D13) written by a review agent\n  SELECT c.pull_request_id, i.tool, 'm6'\n  FROM valid_comments c\n  JOIN identities i ON i.mode = 'review' AND i.field = 'review_author' AND REGEXP_LIKE(LOWER(c.user_name), i.pattern)\n  WHERE c.type IN ('REVIEW', 'DIFF')\n  UNION\n  -- x1 (own marker): head_ref prefix\n  SELECT p.id, x.tool, 'x1'\n  FROM pr_base p\n  JOIN (SELECT 'copilot/' AS prefix, 'copilot' AS tool\n        UNION ALL SELECT 'codex/', 'codex'\n        UNION ALL SELECT 'cursor/', 'cursor'\n        UNION ALL SELECT 'devin/', 'devin'\n        UNION ALL SELECT 'claude/', 'claude') x ON p.head_ref LIKE CONCAT(x.prefix, '%')\n  WHERE ${include_own_markers:sqlstring} = '1'\n  UNION\n  -- x2 (own marker): the PR body has Co-Authored-By: Claude\n  SELECT p.id, 'claude', 'x2'\n  FROM pr_base p\n  WHERE ${include_own_markers:sqlstring} = '1' AND LOWER(p.description) LIKE '%co-authored-by: claude%'\n),\nmarks_sel AS (\n  -- the selection of the dashboard (ADR 0002 D17), made on the marks of every kind, also m5, x1 and x2 whose tool is written in this file and\n  -- not read from identities: the tool of the mark is included, and the mode that the mark gives is included\n  SELECT m.pr_id, m.tool, m.mark\n  FROM marks m\n  WHERE m.tool IN (${tools:sqlstring})\n    AND CASE WHEN m.mark IN ('m1', 'm2') THEN 'cloud'\n             WHEN m.mark = 'm6' THEN 'review'\n             ELSE 'assist' END IN (${modes:sqlstring})\n),\npr_tool AS (\n  SELECT DISTINCT pr_id, tool FROM marks_sel\n),\npr_mode AS (\n  SELECT pr_id, 'cloud_agent' AS mode FROM marks_sel WHERE mark IN ('m1', 'm2')\n  UNION\n  SELECT pr_id, 'ai_assisted' FROM marks_sel WHERE mark IN ('m3', 'm4', 'm5', 'x1', 'x2')\n  UNION\n  SELECT pr_id, 'review_agent' FROM marks_sel WHERE mark = 'm6'\n),\npr_cloud_tool AS (\n  -- the tools whose cloud agent opened the PR or made its first commit (m1, m2)\n  SELECT DISTINCT pr_id, tool FROM marks_sel WHERE mark IN ('m1', 'm2')\n),\npr_group AS (\n  SELECT pr_id, CONCAT('tool:', tool) AS grp FROM pr_tool\n  UNION ALL\n  SELECT p.id, 'tool:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_tool t WHERE t.pr_id = p.id)\n  UNION ALL\n  SELECT pr_id, CONCAT('mode:', mode) FROM pr_mode\n  UNION ALL\n  SELECT DISTINCT pr_id, 'mode:ai_used' FROM pr_mode\n  UNION ALL\n  SELECT p.id, 'mode:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_mode m WHERE m.pr_id = p.id)\n),\nfirst_commit AS (\n  SELECT DISTINCT pr_id, first_commit_at FROM pr_commit\n),\npr_facts AS (\n  SELECT\n    p.id,\n    p.status,\n    p.size,\n    p.in_created,\n    p.in_merged,\n    -- time to first review: from the PR being opened (D1) to the first human review\n    TIMESTAMPDIFF(MINUTE, p.created_date, fr.at_time) AS ttfr_min,\n    -- time in review: from the PR being opened (D1) to the final approval, or to the merge (D5); merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, p.created_date, COALESCE(fa.at_time, p.merged_date)) END AS tir_min,\n    -- cycle time: from the first commit or the opening of the PR, whichever is earlier, to the merge; merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, LEAST(p.created_date, COALESCE(fc.first_commit_at, p.created_date)), p.merged_date) END AS cycle_min,\n    CASE WHEN p.merged_date IS NOT NULL THEN YEARWEEK(p.merged_date, 3) END AS yw           -- D6: ISO week, Monday first\n  FROM pr_base p\n  LEFT JOIN first_review fr ON fr.pr_id = p.id\n  LEFT JOIN final_approval fa ON fa.pr_id = p.id\n  LEFT JOIN first_commit fc ON fc.pr_id = p.id\n),\ngrp_vals AS (\n  SELECT g.grp, 'ttfr' AS m, f.ttfr_min AS v\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1 AND f.ttfr_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'tir', f.tir_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.tir_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'cycle', f.cycle_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.cycle_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'size', f.size\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1\n),\ngrp_ranked AS (\n  SELECT grp, m, v, percent_rank() OVER (PARTITION BY grp, m ORDER BY v) AS rk\n  FROM grp_vals\n),\ngrp_stats AS (\n  SELECT grp, m, COUNT(*) AS n, AVG(v) AS mean_v, MAX(CASE WHEN rk <= 0.5 THEN v END) AS median_v\n  FROM grp_ranked\n  GROUP BY grp, m\n), metric AS (\n-- prs, closed, open: PRs opened in the period. merged: PRs merged in the period (D12), so merged + closed\n-- + open can differ from prs.\n-- mode:cloud_agent = all cloud agent PRs. mode:cloud_agent|tool:<name> = the cloud agent PRs of one tool (m1 or m2 of that\n-- tool); a PR with two cloud tools is in both rows, so the rows of the tools can add up to more than the first row.\nSELECT\n  'mode:cloud_agent' AS grp,\n  (SELECT COUNT(*) FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n    WHERE g.grp = 'mode:cloud_agent' AND f.in_created = 1) AS prs,\n  (SELECT COUNT(*) FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n    WHERE g.grp = 'mode:cloud_agent' AND f.in_merged = 1 AND f.status = 'MERGED') AS merged,\n  (SELECT COUNT(*) FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n    WHERE g.grp = 'mode:cloud_agent' AND f.in_created = 1 AND f.status = 'CLOSED') AS closed,\n  (SELECT COUNT(*) FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n    WHERE g.grp = 'mode:cloud_agent' AND f.in_created = 1 AND f.status = 'OPEN') AS open\nUNION ALL\nSELECT\n  CONCAT('mode:cloud_agent|', ag.grp),\n  (SELECT COUNT(*) FROM pr_cloud_tool ct JOIN pr_facts f ON f.id = ct.pr_id\n    WHERE CONCAT('tool:', ct.tool) = ag.grp AND f.in_created = 1),\n  (SELECT COUNT(*) FROM pr_cloud_tool ct JOIN pr_facts f ON f.id = ct.pr_id\n    WHERE CONCAT('tool:', ct.tool) = ag.grp AND f.in_merged = 1 AND f.status = 'MERGED'),\n  (SELECT COUNT(*) FROM pr_cloud_tool ct JOIN pr_facts f ON f.id = ct.pr_id\n    WHERE CONCAT('tool:', ct.tool) = ag.grp AND f.in_created = 1 AND f.status = 'CLOSED'),\n  (SELECT COUNT(*) FROM pr_cloud_tool ct JOIN pr_facts f ON f.id = ct.pr_id\n    WHERE CONCAT('tool:', ct.tool) = ag.grp AND f.in_created = 1 AND f.status = 'OPEN')\nFROM all_groups ag\nWHERE ag.grp LIKE 'tool:%' AND ag.grp <> 'tool:everything_else'\n)\nSELECT * FROM metric\nWHERE (${comparison:sqlstring} = 'tools' AND grp LIKE 'mode:cloud_agent|tool:%')\n   OR (${comparison:sqlstring} IN ('modes', 'ai_used') AND grp = 'mode:cloud_agent')\nORDER BY grp",
+          "refId": "A"
+        }
+      ],
+      "title": "cloud agent の PR の結末（Cloud agent outcomes）",
+      "type": "table",
+      "description": "cloud agent が作った PR の結末（マージ・閉じた・開いたまま）。AI ツール別はツールごと。"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 3,
+      "panels": [],
+      "title": "この repo 独自の指標",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "mysql",
+        "uid": "devlake-mysql-api"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "agent"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "群"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pr_count"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PR 数"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "median_comments"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "コメント数の中央値"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "median_comments_excl_bots"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "bot を除いた中央値"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 0,
+        "y": 27
+      },
+      "id": 21,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "mysql",
+            "uid": "devlake-mysql-api"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH agents AS (\n  SELECT 'copilot' AS agent, 1 AS sort_no\n  UNION ALL SELECT 'devin', 2\n  UNION ALL SELECT 'codex', 3\n  UNION ALL SELECT 'claude', 4\n  UNION ALL SELECT 'cursor', 5\n  UNION ALL SELECT 'other_bot', 6\n  UNION ALL SELECT 'no_marker', 7\n),\nacct AS (\n  SELECT\n    a.id,\n    a.user_name,\n    CASE WHEN COALESCE(a.is_bot, 0) = 1\n           OR a.user_name IN ('Copilot', 'copilot-swe-agent[bot]', 'devin-ai-integration[bot]')\n         THEN 1 ELSE 0 END AS is_bot                                                         -- bot by flag or by agent name\n  FROM accounts a\n),\npr_login AS (\n  -- the login of the PR author: accounts.user_name when the account row exists; pull_requests.author_name only when it does not.\n  -- DevLake's GraphQL path stores author_name without \"[bot]\" (\"copilot-swe-agent\", \"devin-ai-integration\") while accounts.user_name\n  -- has the account's own login (\"Copilot\", \"devin-ai-integration[bot]\"), so rules 1 and 2 read the account (ADR 0002 A1)\n  SELECT pr.id, CASE WHEN a.id IS NULL THEN pr.author_name ELSE a.user_name END AS login\n  FROM pull_requests pr\n  LEFT JOIN accounts a ON a.id = pr.author_id\n),\npr_base AS (\n  SELECT\n    pr.id,\n    pr.author_id,\n    pr.status,\n    pr.created_date,\n    pr.additions + pr.deletions AS size,\n    CASE\n      WHEN pl.login IN ('Copilot', 'copilot-swe-agent[bot]') THEN 'copilot'                -- rule 1\n      WHEN pl.login = 'devin-ai-integration[bot]' THEN 'devin'                              -- rule 2\n      WHEN pr.head_ref LIKE 'copilot/%' THEN 'copilot'                                      -- rule 3\n      WHEN pr.head_ref LIKE 'codex/%' THEN 'codex'                                          -- rule 4\n      WHEN pr.head_ref LIKE 'cursor/%' THEN 'cursor'                                        -- rule 5\n      WHEN pr.head_ref LIKE 'devin/%' THEN 'devin'                                          -- rule 6\n      WHEN pr.head_ref LIKE 'claude/%'\n        OR LOWER(pr.description) LIKE '%co-authored-by: claude%' THEN 'claude'              -- rule 7\n      WHEN COALESCE(au.is_bot, 0) = 1 THEN 'other_bot'                                      -- rule 8\n      ELSE 'no_marker'                                                                      -- rule 9\n    END AS agent\n  FROM pull_requests pr\n  LEFT JOIN acct au ON au.id = pr.author_id\n  LEFT JOIN pr_login pl ON pl.id = pr.id\n  WHERE $__timeFilter(pr.created_date)\n    AND pr.base_repo_id IN (${repo_id})\n),\nvalid_comments AS (\n  SELECT\n    c.pull_request_id,\n    c.account_id,\n    c.created_date,\n    c.type,\n    c.status,\n    COALESCE(ca.is_bot, 0) AS is_bot\n  FROM pull_request_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  LEFT JOIN acct ca ON ca.id = c.account_id\n  WHERE NOT (c.type = 'REVIEW' AND COALESCE(c.status, '') = 'PENDING')                      -- safeguard: unsent reviews out\n),\npr_facts AS (\n  SELECT\n    p.id,\n    p.agent,\n    p.status,\n    p.size,\n    -- metric 2: all three comment types counted (NORMAL, DIFF, REVIEW)\n    (SELECT COUNT(*) FROM valid_comments c\n      WHERE c.pull_request_id = p.id) AS n_comments,\n    (SELECT COUNT(*) FROM valid_comments c\n      WHERE c.pull_request_id = p.id AND c.is_bot = 0) AS n_comments_human,\n    -- metric 3\n    (SELECT COUNT(*) FROM valid_comments c\n      WHERE c.pull_request_id = p.id AND c.type = 'REVIEW' AND c.status = 'CHANGES_REQUESTED') AS n_changes_requested,\n    -- metric 1: first comment by someone who is not the author and not a bot\n    (SELECT MIN(TIMESTAMPDIFF(MINUTE, p.created_date, c.created_date)) FROM valid_comments c\n      WHERE c.pull_request_id = p.id\n        AND c.is_bot = 0\n        AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)) AS first_human_min,\n    -- metric 1B: the same, and the commenter is not an assignee of the PR\n    (SELECT MIN(TIMESTAMPDIFF(MINUTE, p.created_date, c.created_date)) FROM valid_comments c\n      WHERE c.pull_request_id = p.id\n        AND c.is_bot = 0\n        AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n        AND NOT EXISTS (SELECT 1 FROM pull_request_assignees asg\n                         WHERE asg.pull_request_id = p.id AND asg.assignee_id = c.account_id)) AS first_human_min_excl_assignee\n  FROM pr_base p\n), metric AS (\nSELECT\n  g.agent,\n  g.sort_no AS sort_no,\n  COALESCE(s.pr_count, 0) AS pr_count,\n  m.median_value AS median_comments,\n  mh.median_value AS median_comments_excl_bots\nFROM agents g\nLEFT JOIN (\n  SELECT agent, COUNT(*) AS pr_count FROM pr_facts GROUP BY agent\n) s ON s.agent = g.agent\nLEFT JOIN (\n  SELECT agent, MAX(v) AS median_value FROM (\n    SELECT agent, n_comments AS v, percent_rank() OVER (PARTITION BY agent ORDER BY n_comments) AS rk\n    FROM pr_facts\n  ) r WHERE rk <= 0.5 GROUP BY agent\n) m ON m.agent = g.agent\nLEFT JOIN (\n  SELECT agent, MAX(v) AS median_value FROM (\n    SELECT agent, n_comments_human AS v, percent_rank() OVER (PARTITION BY agent ORDER BY n_comments_human) AS rk\n    FROM pr_facts\n  ) r WHERE rk <= 0.5 GROUP BY agent\n) mh ON mh.agent = g.agent\nORDER BY g.sort_no\n)\nSELECT * FROM metric\nORDER BY sort_no",
+          "refId": "A"
+        }
+      ],
+      "title": "レビューの件数（U1 ② review burden）",
+      "type": "table",
+      "description": "群ごとの、PR 1 本あたりのコメント数の中央値（全部と bot を除いた分）。上の選択では変わりません。",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "sort_no": true
+            },
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "mysql",
+        "uid": "devlake-mysql-api"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "agent"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "群"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pr_count"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PR 数"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "changes_requested_prs"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "差し戻しの PR 数"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "changes_requested_ratio"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "割合"
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 8,
+        "y": 27
+      },
+      "id": 22,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "mysql",
+            "uid": "devlake-mysql-api"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH agents AS (\n  SELECT 'copilot' AS agent, 1 AS sort_no\n  UNION ALL SELECT 'devin', 2\n  UNION ALL SELECT 'codex', 3\n  UNION ALL SELECT 'claude', 4\n  UNION ALL SELECT 'cursor', 5\n  UNION ALL SELECT 'other_bot', 6\n  UNION ALL SELECT 'no_marker', 7\n),\nacct AS (\n  SELECT\n    a.id,\n    a.user_name,\n    CASE WHEN COALESCE(a.is_bot, 0) = 1\n           OR a.user_name IN ('Copilot', 'copilot-swe-agent[bot]', 'devin-ai-integration[bot]')\n         THEN 1 ELSE 0 END AS is_bot                                                         -- bot by flag or by agent name\n  FROM accounts a\n),\npr_login AS (\n  -- the login of the PR author: accounts.user_name when the account row exists; pull_requests.author_name only when it does not.\n  -- DevLake's GraphQL path stores author_name without \"[bot]\" (\"copilot-swe-agent\", \"devin-ai-integration\") while accounts.user_name\n  -- has the account's own login (\"Copilot\", \"devin-ai-integration[bot]\"), so rules 1 and 2 read the account (ADR 0002 A1)\n  SELECT pr.id, CASE WHEN a.id IS NULL THEN pr.author_name ELSE a.user_name END AS login\n  FROM pull_requests pr\n  LEFT JOIN accounts a ON a.id = pr.author_id\n),\npr_base AS (\n  SELECT\n    pr.id,\n    pr.author_id,\n    pr.status,\n    pr.created_date,\n    pr.additions + pr.deletions AS size,\n    CASE\n      WHEN pl.login IN ('Copilot', 'copilot-swe-agent[bot]') THEN 'copilot'                -- rule 1\n      WHEN pl.login = 'devin-ai-integration[bot]' THEN 'devin'                              -- rule 2\n      WHEN pr.head_ref LIKE 'copilot/%' THEN 'copilot'                                      -- rule 3\n      WHEN pr.head_ref LIKE 'codex/%' THEN 'codex'                                          -- rule 4\n      WHEN pr.head_ref LIKE 'cursor/%' THEN 'cursor'                                        -- rule 5\n      WHEN pr.head_ref LIKE 'devin/%' THEN 'devin'                                          -- rule 6\n      WHEN pr.head_ref LIKE 'claude/%'\n        OR LOWER(pr.description) LIKE '%co-authored-by: claude%' THEN 'claude'              -- rule 7\n      WHEN COALESCE(au.is_bot, 0) = 1 THEN 'other_bot'                                      -- rule 8\n      ELSE 'no_marker'                                                                      -- rule 9\n    END AS agent\n  FROM pull_requests pr\n  LEFT JOIN acct au ON au.id = pr.author_id\n  LEFT JOIN pr_login pl ON pl.id = pr.id\n  WHERE $__timeFilter(pr.created_date)\n    AND pr.base_repo_id IN (${repo_id})\n),\nvalid_comments AS (\n  SELECT\n    c.pull_request_id,\n    c.account_id,\n    c.created_date,\n    c.type,\n    c.status,\n    COALESCE(ca.is_bot, 0) AS is_bot\n  FROM pull_request_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  LEFT JOIN acct ca ON ca.id = c.account_id\n  WHERE NOT (c.type = 'REVIEW' AND COALESCE(c.status, '') = 'PENDING')                      -- safeguard: unsent reviews out\n),\npr_facts AS (\n  SELECT\n    p.id,\n    p.agent,\n    p.status,\n    p.size,\n    -- metric 2: all three comment types counted (NORMAL, DIFF, REVIEW)\n    (SELECT COUNT(*) FROM valid_comments c\n      WHERE c.pull_request_id = p.id) AS n_comments,\n    (SELECT COUNT(*) FROM valid_comments c\n      WHERE c.pull_request_id = p.id AND c.is_bot = 0) AS n_comments_human,\n    -- metric 3\n    (SELECT COUNT(*) FROM valid_comments c\n      WHERE c.pull_request_id = p.id AND c.type = 'REVIEW' AND c.status = 'CHANGES_REQUESTED') AS n_changes_requested,\n    -- metric 1: first comment by someone who is not the author and not a bot\n    (SELECT MIN(TIMESTAMPDIFF(MINUTE, p.created_date, c.created_date)) FROM valid_comments c\n      WHERE c.pull_request_id = p.id\n        AND c.is_bot = 0\n        AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)) AS first_human_min,\n    -- metric 1B: the same, and the commenter is not an assignee of the PR\n    (SELECT MIN(TIMESTAMPDIFF(MINUTE, p.created_date, c.created_date)) FROM valid_comments c\n      WHERE c.pull_request_id = p.id\n        AND c.is_bot = 0\n        AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n        AND NOT EXISTS (SELECT 1 FROM pull_request_assignees asg\n                         WHERE asg.pull_request_id = p.id AND asg.assignee_id = c.account_id)) AS first_human_min_excl_assignee\n  FROM pr_base p\n), metric AS (\n-- A review that was dismissed later has the state DISMISSED in GitHub; DevLake stores the state\n-- as it is (pr_review_convertor.go#L92), so a dismissed \"changes requested\" is not counted here.\nSELECT\n  g.agent,\n  g.sort_no AS sort_no,\n  COALESCE(s.pr_count, 0) AS pr_count,\n  COALESCE(s.changes_requested_prs, 0) AS changes_requested_prs,\n  s.changes_requested_ratio\nFROM agents g\nLEFT JOIN (\n  SELECT agent,\n         COUNT(*) AS pr_count,\n         SUM(CASE WHEN n_changes_requested >= 1 THEN 1 ELSE 0 END) AS changes_requested_prs,\n         AVG(CASE WHEN n_changes_requested >= 1 THEN 1 ELSE 0 END) AS changes_requested_ratio\n  FROM pr_facts GROUP BY agent\n) s ON s.agent = g.agent\nORDER BY g.sort_no\n)\nSELECT * FROM metric\nORDER BY sort_no",
+          "refId": "A"
+        }
+      ],
+      "title": "差し戻しの割合（U1 ③ changes requested）",
+      "type": "table",
+      "description": "群ごとの、差し戻し（changes requested）のレビューがあった PR の割合。上の選択では変わりません。",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "sort_no": true
+            },
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "mysql",
+        "uid": "devlake-mysql-api"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "agent"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "群"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pr_count"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PR 数"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "reacted"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "反応のあった PR 数"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "median_minutes"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "中央値"
+              },
+              {
+                "id": "unit",
+                "value": "m"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "reacted_excl_assignee"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "担当者を除く PR 数"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "median_minutes_excl_assignee"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "担当者を除く中央値"
+              },
+              {
+                "id": "unit",
+                "value": "m"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 27
+      },
+      "id": 23,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "mysql",
+            "uid": "devlake-mysql-api"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH agents AS (\n  SELECT 'copilot' AS agent, 1 AS sort_no\n  UNION ALL SELECT 'devin', 2\n  UNION ALL SELECT 'codex', 3\n  UNION ALL SELECT 'claude', 4\n  UNION ALL SELECT 'cursor', 5\n  UNION ALL SELECT 'other_bot', 6\n  UNION ALL SELECT 'no_marker', 7\n),\nacct AS (\n  SELECT\n    a.id,\n    a.user_name,\n    CASE WHEN COALESCE(a.is_bot, 0) = 1\n           OR a.user_name IN ('Copilot', 'copilot-swe-agent[bot]', 'devin-ai-integration[bot]')\n         THEN 1 ELSE 0 END AS is_bot                                                         -- bot by flag or by agent name\n  FROM accounts a\n),\npr_login AS (\n  -- the login of the PR author: accounts.user_name when the account row exists; pull_requests.author_name only when it does not.\n  -- DevLake's GraphQL path stores author_name without \"[bot]\" (\"copilot-swe-agent\", \"devin-ai-integration\") while accounts.user_name\n  -- has the account's own login (\"Copilot\", \"devin-ai-integration[bot]\"), so rules 1 and 2 read the account (ADR 0002 A1)\n  SELECT pr.id, CASE WHEN a.id IS NULL THEN pr.author_name ELSE a.user_name END AS login\n  FROM pull_requests pr\n  LEFT JOIN accounts a ON a.id = pr.author_id\n),\npr_base AS (\n  SELECT\n    pr.id,\n    pr.author_id,\n    pr.status,\n    pr.created_date,\n    pr.additions + pr.deletions AS size,\n    CASE\n      WHEN pl.login IN ('Copilot', 'copilot-swe-agent[bot]') THEN 'copilot'                -- rule 1\n      WHEN pl.login = 'devin-ai-integration[bot]' THEN 'devin'                              -- rule 2\n      WHEN pr.head_ref LIKE 'copilot/%' THEN 'copilot'                                      -- rule 3\n      WHEN pr.head_ref LIKE 'codex/%' THEN 'codex'                                          -- rule 4\n      WHEN pr.head_ref LIKE 'cursor/%' THEN 'cursor'                                        -- rule 5\n      WHEN pr.head_ref LIKE 'devin/%' THEN 'devin'                                          -- rule 6\n      WHEN pr.head_ref LIKE 'claude/%'\n        OR LOWER(pr.description) LIKE '%co-authored-by: claude%' THEN 'claude'              -- rule 7\n      WHEN COALESCE(au.is_bot, 0) = 1 THEN 'other_bot'                                      -- rule 8\n      ELSE 'no_marker'                                                                      -- rule 9\n    END AS agent\n  FROM pull_requests pr\n  LEFT JOIN acct au ON au.id = pr.author_id\n  LEFT JOIN pr_login pl ON pl.id = pr.id\n  WHERE $__timeFilter(pr.created_date)\n    AND pr.base_repo_id IN (${repo_id})\n),\nvalid_comments AS (\n  SELECT\n    c.pull_request_id,\n    c.account_id,\n    c.created_date,\n    c.type,\n    c.status,\n    COALESCE(ca.is_bot, 0) AS is_bot\n  FROM pull_request_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  LEFT JOIN acct ca ON ca.id = c.account_id\n  WHERE NOT (c.type = 'REVIEW' AND COALESCE(c.status, '') = 'PENDING')                      -- safeguard: unsent reviews out\n),\npr_facts AS (\n  SELECT\n    p.id,\n    p.agent,\n    p.status,\n    p.size,\n    -- metric 2: all three comment types counted (NORMAL, DIFF, REVIEW)\n    (SELECT COUNT(*) FROM valid_comments c\n      WHERE c.pull_request_id = p.id) AS n_comments,\n    (SELECT COUNT(*) FROM valid_comments c\n      WHERE c.pull_request_id = p.id AND c.is_bot = 0) AS n_comments_human,\n    -- metric 3\n    (SELECT COUNT(*) FROM valid_comments c\n      WHERE c.pull_request_id = p.id AND c.type = 'REVIEW' AND c.status = 'CHANGES_REQUESTED') AS n_changes_requested,\n    -- metric 1: first comment by someone who is not the author and not a bot\n    (SELECT MIN(TIMESTAMPDIFF(MINUTE, p.created_date, c.created_date)) FROM valid_comments c\n      WHERE c.pull_request_id = p.id\n        AND c.is_bot = 0\n        AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)) AS first_human_min,\n    -- metric 1B: the same, and the commenter is not an assignee of the PR\n    (SELECT MIN(TIMESTAMPDIFF(MINUTE, p.created_date, c.created_date)) FROM valid_comments c\n      WHERE c.pull_request_id = p.id\n        AND c.is_bot = 0\n        AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n        AND NOT EXISTS (SELECT 1 FROM pull_request_assignees asg\n                         WHERE asg.pull_request_id = p.id AND asg.assignee_id = c.account_id)) AS first_human_min_excl_assignee\n  FROM pr_base p\n), metric AS (\nSELECT\n  g.agent,\n  g.sort_no AS sort_no,\n  COALESCE(s.pr_count, 0) AS pr_count,\n  COALESCE(s.reacted, 0) AS reacted,\n  m.median_value AS median_minutes,\n  COALESCE(s.reacted_b, 0) AS reacted_excl_assignee,\n  mb.median_value AS median_minutes_excl_assignee\nFROM agents g\nLEFT JOIN (\n  SELECT agent, COUNT(*) AS pr_count, COUNT(first_human_min) AS reacted, COUNT(first_human_min_excl_assignee) AS reacted_b\n  FROM pr_facts GROUP BY agent\n) s ON s.agent = g.agent\nLEFT JOIN (\n  SELECT agent, MAX(v) AS median_value FROM (\n    SELECT agent, first_human_min AS v, percent_rank() OVER (PARTITION BY agent ORDER BY first_human_min) AS rk\n    FROM pr_facts WHERE first_human_min IS NOT NULL\n  ) r WHERE rk <= 0.5 GROUP BY agent\n) m ON m.agent = g.agent\nLEFT JOIN (\n  SELECT agent, MAX(v) AS median_value FROM (\n    SELECT agent, first_human_min_excl_assignee AS v, percent_rank() OVER (PARTITION BY agent ORDER BY first_human_min_excl_assignee) AS rk\n    FROM pr_facts WHERE first_human_min_excl_assignee IS NOT NULL\n  ) r WHERE rk <= 0.5 GROUP BY agent\n) mb ON mb.agent = g.agent\nORDER BY g.sort_no\n)\nSELECT * FROM metric\nORDER BY sort_no",
+          "refId": "A"
+        }
+      ],
+      "title": "最初の人の反応（U1 ① first human reaction）",
+      "type": "table",
+      "description": "PR を開いてから最初の人の反応（コメントを含む）までの分。上の選択では変わりません。",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "sort_no": true
+            },
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "id": 4,
+      "panels": [
+        {
+          "datasource": {
+            "type": "mysql",
+            "uid": "devlake-mysql-api"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "grp"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "確かめる項目"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "value"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "値"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 37
+          },
+          "id": 31,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "mysql",
+                "uid": "devlake-mysql-api"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "WITH identities(tool, mode, field, pattern) AS (\n  -- tool, mode (cloud | assist | review), field (pr_author | commit_author_name | commit_author_email |\n  -- coauthor | review_author), pattern (lower case). Add or remove rows here per company.\n  -- Basis of each row: docs/agent_identities.md.\n  SELECT 'copilot', 'cloud', 'pr_author', '^(copilot|copilot-swe-agent\\\\[bot\\\\])$'\n  UNION ALL SELECT 'copilot', 'review', 'review_author', '^(copilot|copilot-pull-request-reviewer\\\\[bot\\\\])$'\n  UNION ALL SELECT 'cursor', 'cloud', 'pr_author', '^cursor\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_name', '^cursor agent$'                   -- git name seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'cursor', 'cloud', 'commit_author_email', '^cursoragent@cursor\\\\.com$'       -- git e-mail seen in public commits, agent_identities.md table B\n  UNION ALL SELECT 'claude', 'cloud', 'pr_author', '^claude\\\\[bot\\\\]$'\n  UNION ALL SELECT 'claude', 'cloud', 'commit_author_name', '^claude$'\n  UNION ALL SELECT 'claude', 'assist', 'coauthor', 'claude\\\\b'\n  UNION ALL SELECT 'codex', 'cloud', 'pr_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'codex', 'review', 'review_author', '^chatgpt-codex-connector\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'cloud', 'pr_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'devin', 'review', 'review_author', '^devin-ai-integration\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'cloud', 'pr_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'coderabbit', 'review', 'review_author', '^coderabbitai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'cloud', 'pr_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'cubic', 'review', 'review_author', '^cubic-dev-ai\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'cloud', 'pr_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'graphite', 'review', 'review_author', '^graphite-app\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'cloud', 'pr_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'macroscope', 'review', 'review_author', '^macroscopeapp\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'cloud', 'pr_author', '^qodo-code-review\\\\[bot\\\\]$'\n  UNION ALL SELECT 'qodo', 'review', 'review_author', '^qodo-code-review\\\\[bot\\\\]$'\n  -- CUSTOM-TOOLS-INSERT-POINT: tools/build_dashboard.py puts the rows of --custom-tools on the lines after this one (docs/dashboard.md)\n),\nall_groups AS (\n  -- the tool rows of the selected tools only (an excluded tool has no row on the dashboard)\n  SELECT DISTINCT CONCAT('tool:', tool) AS grp FROM identities WHERE tool IN (${tools:sqlstring})\n  UNION ALL SELECT 'tool:everything_else'\n  UNION ALL SELECT 'mode:cloud_agent'\n  UNION ALL SELECT 'mode:ai_assisted'\n  UNION ALL SELECT 'mode:review_agent'\n  UNION ALL SELECT 'mode:ai_used'\n  UNION ALL SELECT 'mode:everything_else'\n),\nacct AS (\n  SELECT\n    a.id,\n    a.user_name,\n    -- bot (D11): the is_bot flag, U1's agent bot names, or a login of the identities list\n    CASE WHEN COALESCE(a.is_bot, 0) = 1\n           OR a.user_name IN ('Copilot', 'copilot-swe-agent[bot]', 'devin-ai-integration[bot]')\n           OR EXISTS (SELECT 1 FROM identities i\n                       WHERE i.field IN ('pr_author', 'review_author')\n                         AND REGEXP_LIKE(LOWER(a.user_name), i.pattern))\n         THEN 1 ELSE 0 END AS is_bot\n  FROM accounts a\n),\npr_base AS (\n  -- every PR that was opened or merged in the period; the metrics pick in_created or in_merged (D12)\n  SELECT\n    pr.id,\n    pr.author_id,\n    -- the login of the PR author: the account row (accounts.user_name, \"cursor[bot]\") when there is one; DevLake's\n    -- GraphQL path stores pull_requests.author_name without \"[bot]\" (\"cursor\"), so that column is used only when the\n    -- account row is missing (ADR 0002 A1)\n    CASE WHEN au.id IS NULL THEN pr.author_name ELSE au.user_name END AS author_login,\n    pr.status,\n    pr.created_date,\n    pr.merged_date,\n    pr.head_ref,\n    pr.description,\n    COALESCE(pr.additions, 0) + COALESCE(pr.deletions, 0) AS size,\n    CASE WHEN $__timeFilter(pr.created_date) THEN 1 ELSE 0 END AS in_created,\n    CASE WHEN $__timeFilter(pr.merged_date) THEN 1 ELSE 0 END AS in_merged\n  FROM pull_requests pr\n  LEFT JOIN accounts au ON au.id = pr.author_id\n  WHERE ($__timeFilter(pr.created_date) OR $__timeFilter(pr.merged_date))\n    AND pr.base_repo_id IN (${repo_id})\n),\nvalid_comments AS (\n  SELECT\n    c.pull_request_id,\n    c.account_id,\n    c.created_date,\n    c.type,\n    c.status,\n    ca.user_name,\n    COALESCE(ca.is_bot, 0) AS is_bot\n  FROM pull_request_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  LEFT JOIN acct ca ON ca.id = c.account_id\n  WHERE NOT (c.type = 'REVIEW' AND COALESCE(c.status, '') = 'PENDING')                       -- unsent reviews out (as in U1)\n),\nhuman_reviews AS (\n  -- review rows of people: not a bot, not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date, c.status\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type = 'REVIEW'\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nhuman_reactions AS (\n  -- ADR 0002 D16: the rows of people that are U1's first human reaction: a review row, a NORMAL comment or a line comment (DIFF); unsent\n  -- reviews are already out of valid_comments; not a bot (D11), not the PR author (D3)\n  SELECT c.pull_request_id AS pr_id, c.created_date\n  FROM valid_comments c\n  JOIN pr_base p ON p.id = c.pull_request_id\n  WHERE c.type IN ('REVIEW', 'NORMAL', 'DIFF')\n    AND c.is_bot = 0\n    AND c.created_date IS NOT NULL\n    AND (p.author_id IS NULL OR p.author_id = '' OR c.account_id <> p.author_id)\n),\nfirst_review AS (\n  -- D2: the first submitted review of any state (approved, changes requested, commented, dismissed).\n  -- D16: when the dashboard variable first_reaction is 'any', the end of the wait is the first human reaction of any of the three kinds\n  SELECT pr_id, MIN(created_date) AS at_time\n  FROM (SELECT pr_id, created_date FROM human_reviews WHERE ${first_reaction:sqlstring} <> 'any'\n        UNION ALL\n        SELECT pr_id, created_date FROM human_reactions WHERE ${first_reaction:sqlstring} = 'any') r\n  GROUP BY pr_id\n),\nfinal_approval AS (\n  -- D9: the last APPROVED review before the merge\n  SELECT hr.pr_id, MAX(hr.created_date) AS at_time\n  FROM human_reviews hr\n  JOIN pr_base p ON p.id = hr.pr_id\n  WHERE hr.status = 'APPROVED' AND p.merged_date IS NOT NULL AND hr.created_date < p.merged_date\n  GROUP BY hr.pr_id\n),\ntool_commits AS (\n  -- ADJUSTMENT POINT (ADR 0002 D15): where the text of a commit of a PR is read from when `commits` has none. The default is the\n  -- tool-layer table of DevLake's GitHub plugin (primary key sha only, no connection column; `message` is the text of the commit as GitHub\n  -- gave it). That table exists only when the GitHub plugin was built (a DevLake built with DEVLAKE_PLUGINS=gitlab,... does not have it): in\n  -- that case replace the line below by an empty list with the same two columns, and the SQL reads `commits` only:\n  --   SELECT CAST(NULL AS CHAR(40)) AS sha, CAST(NULL AS CHAR) AS message FROM (SELECT 1) one WHERE 1 = 0\n  SELECT t.sha, t.message FROM _tool_github_commits t\n),\npr_commit AS (\n  -- commits and tool_commits are joined with LEFT JOIN: a PR whose message is in neither stays in every count\n  SELECT\n    prc.pull_request_id AS pr_id,\n    prc.commit_sha,\n    prc.commit_author_name,\n    prc.commit_author_email,\n    prc.commit_authored_date,\n    -- the text of the commit (ADR 0002 D15): the domain-layer `commits.message` first, then the tool table. commits.message is a longblob in a\n    -- real DevLake (ADR 0002 A2): LOWER() and REGEXP_LIKE() on a binary string are case-sensitive, so the text is converted first. An empty\n    -- text counts as no text (NULLIF), so the tool table is read then, too.\n    COALESCE(NULLIF(CONVERT(cm.message USING utf8mb4), ''), t.message) AS message,\n    -- 1 when the text of this commit came from the tool table (the domain-layer text is missing or empty and the tool table has one)\n    CASE WHEN NULLIF(CONVERT(cm.message USING utf8mb4), '') IS NULL AND t.message IS NOT NULL THEN 1 ELSE 0 END AS from_tool,\n    MIN(prc.commit_authored_date) OVER (PARTITION BY prc.pull_request_id) AS first_commit_at\n  FROM pull_request_commits prc\n  JOIN pr_base p ON p.id = prc.pull_request_id\n  LEFT JOIN commits cm ON cm.sha = prc.commit_sha\n  LEFT JOIN tool_commits t ON t.sha = prc.commit_sha\n),\nmarks AS (\n  -- m1: the PR author is a cloud agent\n  SELECT p.id AS pr_id, i.tool, 'm1' AS mark\n  FROM pr_base p\n  JOIN identities i ON i.mode = 'cloud' AND i.field = 'pr_author' AND REGEXP_LIKE(LOWER(p.author_login), i.pattern)\n  UNION\n  -- m2: the first commit (D10: all commits with the earliest time) is authored by a cloud agent, by name or e-mail\n  SELECT pc.pr_id, i.tool, 'm2'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode = 'cloud'\n   AND pc.commit_authored_date = pc.first_commit_at\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m3: any commit is authored by an AI tool\n  SELECT pc.pr_id, i.tool, 'm3'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist')\n   AND ((i.field = 'commit_author_name' AND REGEXP_LIKE(LOWER(pc.commit_author_name), i.pattern))\n     OR (i.field = 'commit_author_email' AND REGEXP_LIKE(LOWER(pc.commit_author_email), i.pattern)))\n  UNION\n  -- m4: a Co-authored-by line of an AI tool, at the start of a line (real line breaks, or the JSON-string shape)\n  SELECT pc.pr_id, i.tool, 'm4'\n  FROM pr_commit pc\n  JOIN identities i ON i.mode IN ('cloud', 'assist') AND i.field = 'coauthor'\n   AND (REGEXP_LIKE(LOWER(pc.message), CONCAT('^co-authored-by:[ \\\\t]*(?:', i.pattern, ')'), 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), CONCAT('(^\"?|\\\\\\\\n)co-authored-by:[ \\\\t]*(?:', i.pattern, ')')))\n  UNION\n  -- m5: a \"Made-with: Cursor\" line, at the start of a line\n  SELECT pc.pr_id, 'cursor', 'm5'\n  FROM pr_commit pc\n  WHERE REGEXP_LIKE(LOWER(pc.message), '^made-with:[ \\\\t]*cursor\\\\b', 'm')\n     OR REGEXP_LIKE(LOWER(pc.message), '(^\"?|\\\\\\\\n)made-with:[ \\\\t]*cursor\\\\b')\n  UNION\n  -- m6: a review row (REVIEW or a line comment of a review, D13) written by a review agent\n  SELECT c.pull_request_id, i.tool, 'm6'\n  FROM valid_comments c\n  JOIN identities i ON i.mode = 'review' AND i.field = 'review_author' AND REGEXP_LIKE(LOWER(c.user_name), i.pattern)\n  WHERE c.type IN ('REVIEW', 'DIFF')\n  UNION\n  -- x1 (own marker): head_ref prefix\n  SELECT p.id, x.tool, 'x1'\n  FROM pr_base p\n  JOIN (SELECT 'copilot/' AS prefix, 'copilot' AS tool\n        UNION ALL SELECT 'codex/', 'codex'\n        UNION ALL SELECT 'cursor/', 'cursor'\n        UNION ALL SELECT 'devin/', 'devin'\n        UNION ALL SELECT 'claude/', 'claude') x ON p.head_ref LIKE CONCAT(x.prefix, '%')\n  WHERE ${include_own_markers:sqlstring} = '1'\n  UNION\n  -- x2 (own marker): the PR body has Co-Authored-By: Claude\n  SELECT p.id, 'claude', 'x2'\n  FROM pr_base p\n  WHERE ${include_own_markers:sqlstring} = '1' AND LOWER(p.description) LIKE '%co-authored-by: claude%'\n),\nmarks_sel AS (\n  -- the selection of the dashboard (ADR 0002 D17), made on the marks of every kind, also m5, x1 and x2 whose tool is written in this file and\n  -- not read from identities: the tool of the mark is included, and the mode that the mark gives is included\n  SELECT m.pr_id, m.tool, m.mark\n  FROM marks m\n  WHERE m.tool IN (${tools:sqlstring})\n    AND CASE WHEN m.mark IN ('m1', 'm2') THEN 'cloud'\n             WHEN m.mark = 'm6' THEN 'review'\n             ELSE 'assist' END IN (${modes:sqlstring})\n),\npr_tool AS (\n  SELECT DISTINCT pr_id, tool FROM marks_sel\n),\npr_mode AS (\n  SELECT pr_id, 'cloud_agent' AS mode FROM marks_sel WHERE mark IN ('m1', 'm2')\n  UNION\n  SELECT pr_id, 'ai_assisted' FROM marks_sel WHERE mark IN ('m3', 'm4', 'm5', 'x1', 'x2')\n  UNION\n  SELECT pr_id, 'review_agent' FROM marks_sel WHERE mark = 'm6'\n),\npr_cloud_tool AS (\n  -- the tools whose cloud agent opened the PR or made its first commit (m1, m2)\n  SELECT DISTINCT pr_id, tool FROM marks_sel WHERE mark IN ('m1', 'm2')\n),\npr_group AS (\n  SELECT pr_id, CONCAT('tool:', tool) AS grp FROM pr_tool\n  UNION ALL\n  SELECT p.id, 'tool:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_tool t WHERE t.pr_id = p.id)\n  UNION ALL\n  SELECT pr_id, CONCAT('mode:', mode) FROM pr_mode\n  UNION ALL\n  SELECT DISTINCT pr_id, 'mode:ai_used' FROM pr_mode\n  UNION ALL\n  SELECT p.id, 'mode:everything_else' FROM pr_base p\n   WHERE NOT EXISTS (SELECT 1 FROM pr_mode m WHERE m.pr_id = p.id)\n),\nfirst_commit AS (\n  SELECT DISTINCT pr_id, first_commit_at FROM pr_commit\n),\npr_facts AS (\n  SELECT\n    p.id,\n    p.status,\n    p.size,\n    p.in_created,\n    p.in_merged,\n    -- time to first review: from the PR being opened (D1) to the first human review\n    TIMESTAMPDIFF(MINUTE, p.created_date, fr.at_time) AS ttfr_min,\n    -- time in review: from the PR being opened (D1) to the final approval, or to the merge (D5); merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, p.created_date, COALESCE(fa.at_time, p.merged_date)) END AS tir_min,\n    -- cycle time: from the first commit or the opening of the PR, whichever is earlier, to the merge; merged PRs only\n    CASE WHEN p.merged_date IS NOT NULL\n         THEN TIMESTAMPDIFF(MINUTE, LEAST(p.created_date, COALESCE(fc.first_commit_at, p.created_date)), p.merged_date) END AS cycle_min,\n    CASE WHEN p.merged_date IS NOT NULL THEN YEARWEEK(p.merged_date, 3) END AS yw           -- D6: ISO week, Monday first\n  FROM pr_base p\n  LEFT JOIN first_review fr ON fr.pr_id = p.id\n  LEFT JOIN final_approval fa ON fa.pr_id = p.id\n  LEFT JOIN first_commit fc ON fc.pr_id = p.id\n),\ngrp_vals AS (\n  SELECT g.grp, 'ttfr' AS m, f.ttfr_min AS v\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1 AND f.ttfr_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'tir', f.tir_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.tir_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'cycle', f.cycle_min\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_merged = 1 AND f.cycle_min IS NOT NULL\n  UNION ALL\n  SELECT g.grp, 'size', f.size\n  FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n  WHERE f.in_created = 1\n),\ngrp_ranked AS (\n  SELECT grp, m, v, percent_rank() OVER (PARTITION BY grp, m ORDER BY v) AS rk\n  FROM grp_vals\n),\ngrp_stats AS (\n  SELECT grp, m, COUNT(*) AS n, AVG(v) AS mean_v, MAX(CASE WHEN rk <= 0.5 THEN v END) AS median_v\n  FROM grp_ranked\n  GROUP BY grp, m\n), metric AS (\n-- prs_without_commit_message: PRs opened in the period for which no commit message could be read from `commits` nor from the tool table (D15).\n-- prs_commit_message_from_tool_table: PRs opened in the period with at least one commit whose message was read from the tool table because\n--   `commits` has no (or an empty) text for it (D15).\n-- tool_group_total_minus_pr_total: the sum of the tool groups minus the number of PRs (the overlap), PRs opened in the period.\nSELECT\n  'check:prs_without_commit_message' AS grp,\n  (SELECT COUNT(*) FROM pr_base p\n    WHERE p.in_created = 1\n      AND NOT EXISTS (SELECT 1 FROM pr_commit pc WHERE pc.pr_id = p.id AND pc.message IS NOT NULL)) AS value\nUNION ALL\nSELECT\n  'check:prs_commit_message_from_tool_table',\n  (SELECT COUNT(*) FROM pr_base p\n    WHERE p.in_created = 1\n      AND EXISTS (SELECT 1 FROM pr_commit pc WHERE pc.pr_id = p.id AND pc.from_tool = 1))\nUNION ALL\nSELECT\n  'check:tool_group_total_minus_pr_total',\n  (SELECT COUNT(*) FROM pr_group g JOIN pr_facts f ON f.id = g.pr_id\n    WHERE g.grp LIKE 'tool:%' AND f.in_created = 1)\n  - (SELECT COUNT(*) FROM pr_base p WHERE p.in_created = 1)\n)\nSELECT * FROM metric\nORDER BY grp",
+              "refId": "A"
+            }
+          ],
+          "title": "データの確かめ（diagnostics）",
+          "type": "table",
+          "description": "データの穴の確かめ: commit の本文が読めなかった PR の数、本文を GitHub の表から読んだ PR の数、ツールの群の重なりの数。"
+        }
+      ],
+      "title": "データの確かめ",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      },
+      "id": 5,
+      "panels": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "grafana"
+          },
+          "id": 1,
+          "options": {
+            "code": {
+              "language": "plaintext",
+              "showLineNumbers": false,
+              "showMiniMap": false
+            },
+            "content": "**この画面で見られるもの**\nDevLake に取り込んだ GitHub の PR を、AI ツール別・使い方別に比べます。指標は 5 つです: PR のマージ数（PRs merged）、サイクルタイム（Cycle time）、最初のレビューまでの時間（Time to first review）、レビューの時間（Time in review）、PR の大きさ（Batch size）。時間は分で、時刻は UTC です。\n\n**上の選択**\n- **比べ方（comparison）**: 「AI ツール別」は各ツールとそれ以外、「使い方別」は cloud agent・AI-assisted・review agent とそれ以外、「AI を使ったか」は AI を使った PR とそれ以外を並べます。どの比べ方でも画面の作りは同じです。\n- **含めるツール（tools）・含める使い方（modes）**: 比べる対象を選びます。\n- **独自の印（include_own_markers）**: 「標準の見分け方だけ」は commit の作者・共作者・Made-with の行・cloud agent の作者・review agent のレビューだけを見ます。「この repo 独自の見分け方も使う」は、この repo 独自の 2 つの印（branch 名の先頭、PR の本文の Co-Authored-By）も足します。\n- **最初の反応の数え方（first_reaction）**: 「レビューだけ」は最初の人のレビュー、「コメントも」は最初の人のレビュー・コメント・行コメントで、Time to first review の終わりを決めます。Time in review と Cycle time は変わりません。\n\n**読み方の注意**\n- 1 本の PR は、複数のツール・複数の使い方に数えられることがあります。群の合計は PR の数より多くなることがあります。\n- 判定は確度の高い物だけです。確度の低い判定は入れていません。\n- 含めないツールの PR は、他に含めたツールの印が無ければ「それ以外」に入ります（母数から除きません）。\n- 「この repo 独自の指標」の 3 つの表（U1）は、上の選択（比べ方・ツール・使い方・独自の印・最初の反応の数え方）では変わりません。Repo と時間の範囲だけで変わります。\n- 人の名前や login はこの画面に出しません。\n- 定義と、原文で決まらない所の決め方は ADR 0002（D16・D17 が最初の反応と外したツールの PR）、画面の作りは ADR 0004 に書いてあります。",
+            "mode": "markdown"
+          },
+          "title": "この画面について",
+          "type": "text",
+          "gridPos": {
+            "h": 14,
+            "w": 24,
+            "x": 0,
+            "y": 38
+          }
+        }
+      ],
+      "title": "この画面の読み方",
+      "type": "row"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 39,
+  "tags": [
+    "AI impact"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allowCustomValue": false,
+        "allValue": "",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "mysql",
+          "uid": "devlake-mysql-api"
+        },
+        "definition": "select concat(name, '--', id) as text from repos where id like 'github%'",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Repo",
+        "multi": true,
+        "name": "repo_id",
+        "options": [],
+        "query": "select concat(name, '--', id) as text from repos where id like 'github%'",
+        "refresh": 1,
+        "regex": "/^(?<text>.*)--(?<value>.*)$/",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "selected": false,
+          "text": "AI ツール別",
+          "value": "tools"
+        },
+        "description": "",
+        "hide": 0,
+        "includeAll": false,
+        "label": "比べ方",
+        "multi": false,
+        "name": "comparison",
+        "options": [
+          {
+            "selected": true,
+            "text": "AI ツール別",
+            "value": "tools"
+          },
+          {
+            "selected": false,
+            "text": "使い方別",
+            "value": "modes"
+          },
+          {
+            "selected": false,
+            "text": "AI を使ったか",
+            "value": "ai_used"
+          }
+        ],
+        "query": "AI ツール別 : tools, 使い方別 : modes, AI を使ったか : ai_used",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "description": "",
+        "hide": 0,
+        "includeAll": true,
+        "label": "含めるツール",
+        "multi": true,
+        "name": "tools",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "copilot",
+            "value": "copilot"
+          },
+          {
+            "selected": false,
+            "text": "cursor",
+            "value": "cursor"
+          },
+          {
+            "selected": false,
+            "text": "claude",
+            "value": "claude"
+          },
+          {
+            "selected": false,
+            "text": "codex",
+            "value": "codex"
+          },
+          {
+            "selected": false,
+            "text": "devin",
+            "value": "devin"
+          },
+          {
+            "selected": false,
+            "text": "coderabbit",
+            "value": "coderabbit"
+          },
+          {
+            "selected": false,
+            "text": "cubic",
+            "value": "cubic"
+          },
+          {
+            "selected": false,
+            "text": "graphite",
+            "value": "graphite"
+          },
+          {
+            "selected": false,
+            "text": "macroscope",
+            "value": "macroscope"
+          },
+          {
+            "selected": false,
+            "text": "qodo",
+            "value": "qodo"
+          }
+        ],
+        "query": "copilot, cursor, claude, codex, devin, coderabbit, cubic, graphite, macroscope, qodo",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "description": "",
+        "hide": 0,
+        "includeAll": true,
+        "label": "含める使い方",
+        "multi": true,
+        "name": "modes",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "cloud agent",
+            "value": "cloud"
+          },
+          {
+            "selected": false,
+            "text": "AI-assisted",
+            "value": "assist"
+          },
+          {
+            "selected": false,
+            "text": "review agent",
+            "value": "review"
+          }
+        ],
+        "query": "cloud agent : cloud, AI-assisted : assist, review agent : review",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "selected": false,
+          "text": "標準の見分け方だけ",
+          "value": "0"
+        },
+        "description": "",
+        "hide": 0,
+        "includeAll": false,
+        "label": "独自の印",
+        "multi": false,
+        "name": "include_own_markers",
+        "options": [
+          {
+            "selected": true,
+            "text": "標準の見分け方だけ",
+            "value": "0"
+          },
+          {
+            "selected": false,
+            "text": "この repo 独自の見分け方も使う",
+            "value": "1"
+          }
+        ],
+        "query": "標準の見分け方だけ : 0, この repo 独自の見分け方も使う : 1",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "selected": false,
+          "text": "レビューだけ",
+          "value": "review"
+        },
+        "description": "",
+        "hide": 0,
+        "includeAll": false,
+        "label": "最初の反応の数え方",
+        "multi": false,
+        "name": "first_reaction",
+        "options": [
+          {
+            "selected": true,
+            "text": "レビューだけ",
+            "value": "review"
+          },
+          {
+            "selected": false,
+            "text": "コメントも",
+            "value": "any"
+          }
+        ],
+        "query": "レビューだけ : review, コメントも : any",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "utc",
+  "title": "AI 利用別の PR 指標（レビュー負荷）",
+  "uid": "ai-impact-pr",
+  "version": 1,
+  "weekStart": ""
+}

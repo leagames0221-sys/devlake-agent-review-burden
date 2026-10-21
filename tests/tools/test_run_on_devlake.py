@@ -44,10 +44,10 @@ c2, m2 = mod.split_blocks(ROOT / "sql" / "mysql" / "agent_review_burden.sql")
 check("u1 metric count", len(m2), 5)
 
 # 2. macros
-text = "WHERE $__timeFilter(pr.created_date) OR $__timeFilter(pr.merged_date) AND x IN (${repo_id}) AND ${include_own_markers} = 1"
+text = "WHERE $__timeFilter(pr.created_date) OR $__timeFilter(pr.merged_date) AND x IN (${repo_id}) AND ${include_own_markers:sqlstring} = '1'"
 out = mod.apply_macros(text, "2026-09-01 00:00:00", "2026-09-30 23:59:59", ["r:1", "r:2"], 1)
 check("macros", out, "WHERE pr.created_date BETWEEN '2026-09-01 00:00:00' AND '2026-09-30 23:59:59' OR "
-                     "pr.merged_date BETWEEN '2026-09-01 00:00:00' AND '2026-09-30 23:59:59' AND x IN ('r:1', 'r:2') AND 1 = 1")
+                     "pr.merged_date BETWEEN '2026-09-01 00:00:00' AND '2026-09-30 23:59:59' AND x IN ('r:1', 'r:2') AND '1' = '1'")
 raises("unknown macro refused", lambda: mod.apply_macros("$__timeGroup(x)", "a", "b", ["r"], 0))
 for f in (ROOT / "sql" / "mysql" / "ai_impact_parity.sql", ROOT / "sql" / "mysql" / "agent_review_burden.sql"):
     cm, mt = mod.split_blocks(f)

@@ -1,0 +1,1544 @@
+{
+ "coauthor_scene": {
+  "_comment": "tests/fixture_u5_coauthor.sql with a custom tool acme whose only row is a coauthor pattern with a top-level |. Hand-worked: P21 (30 min) and P23 (90 min) have a Co-authored-by trailer of acme; P22 (60 min) only names acme-bot in a sentence and is not a hit. acme: 2 PRs, mean 60, median 30 (sorted 30, 90, rank 0 and 1).",
+  "custom_tools": {
+   "tools": [
+    {
+     "name": "acme",
+     "rows": [
+      {
+       "field": "coauthor",
+       "pattern": "acme|acme-bot"
+      }
+     ]
+    }
+   ]
+  },
+  "time_to_first_review": {
+   "tool:copilot": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:cursor": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:claude": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:codex": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:devin": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:coderabbit": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:cubic": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:graphite": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:macroscope": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:qodo": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "tool:acme": {
+    "prs": 2,
+    "n_defined": 2,
+    "mean_minutes": 60,
+    "median_minutes": 30
+   },
+   "tool:everything_else": {
+    "prs": 1,
+    "n_defined": 1,
+    "mean_minutes": 60,
+    "median_minutes": 60
+   },
+   "mode:cloud_agent": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "mode:ai_assisted": {
+    "prs": 2,
+    "n_defined": 2,
+    "mean_minutes": 60,
+    "median_minutes": 30
+   },
+   "mode:review_agent": {
+    "prs": 0,
+    "n_defined": 0,
+    "mean_minutes": null,
+    "median_minutes": null
+   },
+   "mode:ai_used": {
+    "prs": 2,
+    "n_defined": 2,
+    "mean_minutes": 60,
+    "median_minutes": 30
+   },
+   "mode:everything_else": {
+    "prs": 1,
+    "n_defined": 1,
+    "mean_minutes": 60,
+    "median_minutes": 60
+   }
+  },
+  "pr_classification": {
+   "331": {
+    "marks": "m4:acme",
+    "tools": "acme",
+    "modes": "ai_assisted",
+    "ai_used": 1
+   },
+   "332": {
+    "marks": null,
+    "tools": "everything_else",
+    "modes": "everything_else",
+    "ai_used": 0
+   },
+   "333": {
+    "marks": "m4:acme",
+    "tools": "acme",
+    "modes": "ai_assisted",
+    "ai_used": 1
+   }
+  }
+ },
+ "_comment": "Expected values of the U5 variable scenes (tests/test_dashboard.py), worked out by hand from tests/fixture_u5.sql. Per scene: the exact set of rows of time_to_first_review (prs, n_defined, mean, median per group), the rows of pr_classification that the scene changes (marks, tools, modes, ai_used) and, where listed, rows of cloud_agent_outcomes. 'tools_except' = every tool of the identities list except these. Scene S11 (fixture_u2.sql, first_reaction = any) is in the 'u2_any' part: only Q20 changes (90 -> 30 minutes), so only the two everything_else rows differ from expected_u2_parity.json.",
+ "period": "2026-03-01..2026-03-31",
+ "repo": "github:GithubRepo:1:1",
+ "scenarios": [
+  {
+   "name": "S0 defaults (all tools, all modes, review, own markers off)",
+   "fixture": "u5",
+   "vars": {},
+   "time_to_first_review": {
+    "tool:copilot": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:cursor": {
+     "prs": 3,
+     "n_defined": 3,
+     "mean_minutes": 43.333333,
+     "median_minutes": 40
+    },
+    "tool:claude": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 95,
+     "median_minutes": 90
+    },
+    "tool:codex": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:devin": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:coderabbit": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "tool:cubic": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:graphite": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:macroscope": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:qodo": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:everything_else": {
+     "prs": 5,
+     "n_defined": 5,
+     "mean_minutes": 88,
+     "median_minutes": 70
+    },
+    "mode:cloud_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 50,
+     "median_minutes": 40
+    },
+    "mode:ai_assisted": {
+     "prs": 4,
+     "n_defined": 4,
+     "mean_minutes": 65,
+     "median_minutes": 40
+    },
+    "mode:review_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "mode:ai_used": {
+     "prs": 7,
+     "n_defined": 7,
+     "mean_minutes": 60.714286,
+     "median_minutes": 60
+    },
+    "mode:everything_else": {
+     "prs": 5,
+     "n_defined": 5,
+     "mean_minutes": 88,
+     "median_minutes": 70
+    }
+   },
+   "pr_classification": {
+    "301": {
+     "marks": "m1:cursor",
+     "tools": "cursor",
+     "modes": "cloud_agent",
+     "ai_used": 1
+    },
+    "302": {
+     "marks": "m5:cursor",
+     "tools": "cursor",
+     "modes": "ai_assisted",
+     "ai_used": 1
+    },
+    "303": {
+     "marks": "m4:claude",
+     "tools": "claude",
+     "modes": "ai_assisted",
+     "ai_used": 1
+    },
+    "304": {
+     "marks": "m6:coderabbit",
+     "tools": "coderabbit",
+     "modes": "review_agent",
+     "ai_used": 1
+    },
+    "305": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "306": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "307": {
+     "marks": "m2:cursor,m3:cursor",
+     "tools": "cursor",
+     "modes": "ai_assisted,cloud_agent",
+     "ai_used": 1
+    },
+    "308": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "309": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "310": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "311": {
+     "marks": "m4:claude",
+     "tools": "claude",
+     "modes": "ai_assisted",
+     "ai_used": 1
+    },
+    "312": {
+     "marks": "m6:coderabbit",
+     "tools": "coderabbit",
+     "modes": "review_agent",
+     "ai_used": 1
+    }
+   },
+   "cloud_agent_outcomes": {
+    "mode:cloud_agent": {
+     "prs": 2,
+     "merged": 2,
+     "closed": 0,
+     "open": 0
+    },
+    "mode:cloud_agent|tool:cursor": {
+     "prs": 2,
+     "merged": 2,
+     "closed": 0,
+     "open": 0
+    }
+   }
+  },
+  {
+   "name": "S1 (V2 1) tools: claude taken out -> the PRs of claude only (P3, P11) fall to everything_else, the row tool:claude is not there",
+   "fixture": "u5",
+   "vars": {
+    "tools_except": [
+     "claude"
+    ]
+   },
+   "time_to_first_review": {
+    "tool:copilot": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:cursor": {
+     "prs": 3,
+     "n_defined": 3,
+     "mean_minutes": 43.333333,
+     "median_minutes": 40
+    },
+    "tool:codex": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:devin": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:coderabbit": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "tool:cubic": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:graphite": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:macroscope": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:qodo": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:everything_else": {
+     "prs": 7,
+     "n_defined": 7,
+     "mean_minutes": 90,
+     "median_minutes": 90
+    },
+    "mode:cloud_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 50,
+     "median_minutes": 40
+    },
+    "mode:ai_assisted": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 35,
+     "median_minutes": 30
+    },
+    "mode:review_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "mode:ai_used": {
+     "prs": 5,
+     "n_defined": 5,
+     "mean_minutes": 47,
+     "median_minutes": 45
+    },
+    "mode:everything_else": {
+     "prs": 7,
+     "n_defined": 7,
+     "mean_minutes": 90,
+     "median_minutes": 90
+    }
+   },
+   "pr_classification": {
+    "303": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "311": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "302": {
+     "marks": "m5:cursor",
+     "tools": "cursor",
+     "modes": "ai_assisted",
+     "ai_used": 1
+    }
+   }
+  },
+  {
+   "name": "S2 (V2 2) tools: coderabbit taken out (its account has is_bot = 0): P4 stays at 45 minutes (its bot review is still a bot review), the other groups do not change",
+   "fixture": "u5",
+   "vars": {
+    "tools_except": [
+     "coderabbit"
+    ]
+   },
+   "time_to_first_review": {
+    "tool:copilot": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:cursor": {
+     "prs": 3,
+     "n_defined": 3,
+     "mean_minutes": 43.333333,
+     "median_minutes": 40
+    },
+    "tool:claude": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 95,
+     "median_minutes": 90
+    },
+    "tool:codex": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:devin": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:cubic": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:graphite": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:macroscope": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:qodo": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:everything_else": {
+     "prs": 7,
+     "n_defined": 7,
+     "mean_minutes": 77.857143,
+     "median_minutes": 60
+    },
+    "mode:cloud_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 50,
+     "median_minutes": 40
+    },
+    "mode:ai_assisted": {
+     "prs": 4,
+     "n_defined": 4,
+     "mean_minutes": 65,
+     "median_minutes": 40
+    },
+    "mode:review_agent": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "mode:ai_used": {
+     "prs": 5,
+     "n_defined": 5,
+     "mean_minutes": 64,
+     "median_minutes": 60
+    },
+    "mode:everything_else": {
+     "prs": 7,
+     "n_defined": 7,
+     "mean_minutes": 77.857143,
+     "median_minutes": 60
+    }
+   },
+   "pr_classification": {
+    "304": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "312": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    }
+   }
+  },
+  {
+   "name": "S3 (V2 3) modes: assist only -> P7 (cloud agent commit author, mark m3) stays AI-assisted, the cloud_agent group is empty, P1 (m1) falls to everything_else",
+   "fixture": "u5",
+   "vars": {
+    "modes": [
+     "assist"
+    ]
+   },
+   "time_to_first_review": {
+    "tool:copilot": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:cursor": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 35,
+     "median_minutes": 30
+    },
+    "tool:claude": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 95,
+     "median_minutes": 90
+    },
+    "tool:codex": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:devin": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:coderabbit": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:cubic": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:graphite": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:macroscope": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:qodo": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:everything_else": {
+     "prs": 8,
+     "n_defined": 8,
+     "mean_minutes": 75.625,
+     "median_minutes": 60
+    },
+    "mode:cloud_agent": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "mode:ai_assisted": {
+     "prs": 4,
+     "n_defined": 4,
+     "mean_minutes": 65,
+     "median_minutes": 40
+    },
+    "mode:review_agent": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "mode:ai_used": {
+     "prs": 4,
+     "n_defined": 4,
+     "mean_minutes": 65,
+     "median_minutes": 40
+    },
+    "mode:everything_else": {
+     "prs": 8,
+     "n_defined": 8,
+     "mean_minutes": 75.625,
+     "median_minutes": 60
+    }
+   },
+   "pr_classification": {
+    "301": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "304": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "312": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "307": {
+     "marks": "m3:cursor",
+     "tools": "cursor",
+     "modes": "ai_assisted",
+     "ai_used": 1
+    }
+   },
+   "cloud_agent_outcomes": {
+    "mode:cloud_agent": {
+     "prs": 0,
+     "merged": 0,
+     "closed": 0,
+     "open": 0
+    },
+    "mode:cloud_agent|tool:cursor": {
+     "prs": 0,
+     "merged": 0,
+     "closed": 0,
+     "open": 0
+    }
+   }
+  },
+  {
+   "name": "S4 (V2 4) tools: cursor taken out -> P2 (only m5, Made-with: Cursor) falls to everything_else, also P1 and P7",
+   "fixture": "u5",
+   "vars": {
+    "tools_except": [
+     "cursor"
+    ]
+   },
+   "time_to_first_review": {
+    "tool:copilot": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:claude": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 95,
+     "median_minutes": 90
+    },
+    "tool:codex": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:devin": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:coderabbit": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "tool:cubic": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:graphite": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:macroscope": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:qodo": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:everything_else": {
+     "prs": 8,
+     "n_defined": 8,
+     "mean_minutes": 71.25,
+     "median_minutes": 50
+    },
+    "mode:cloud_agent": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "mode:ai_assisted": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 95,
+     "median_minutes": 90
+    },
+    "mode:review_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "mode:ai_used": {
+     "prs": 4,
+     "n_defined": 4,
+     "mean_minutes": 73.75,
+     "median_minutes": 60
+    },
+    "mode:everything_else": {
+     "prs": 8,
+     "n_defined": 8,
+     "mean_minutes": 71.25,
+     "median_minutes": 50
+    }
+   },
+   "pr_classification": {
+    "302": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "301": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "307": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    }
+   }
+  },
+  {
+   "name": "S5 (V2 7) own markers on: P8 (x1) and P9 (x2) join claude",
+   "fixture": "u5",
+   "vars": {
+    "include_own_markers": "1"
+   },
+   "time_to_first_review": {
+    "tool:copilot": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:cursor": {
+     "prs": 3,
+     "n_defined": 3,
+     "mean_minutes": 43.333333,
+     "median_minutes": 40
+    },
+    "tool:claude": {
+     "prs": 4,
+     "n_defined": 4,
+     "mean_minutes": 77.5,
+     "median_minutes": 70
+    },
+    "tool:codex": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:devin": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:coderabbit": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "tool:cubic": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:graphite": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:macroscope": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:qodo": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:everything_else": {
+     "prs": 3,
+     "n_defined": 3,
+     "mean_minutes": 106.666667,
+     "median_minutes": 120
+    },
+    "mode:cloud_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 50,
+     "median_minutes": 40
+    },
+    "mode:ai_assisted": {
+     "prs": 6,
+     "n_defined": 6,
+     "mean_minutes": 63.333333,
+     "median_minutes": 50
+    },
+    "mode:review_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "mode:ai_used": {
+     "prs": 9,
+     "n_defined": 9,
+     "mean_minutes": 60.555556,
+     "median_minutes": 60
+    },
+    "mode:everything_else": {
+     "prs": 3,
+     "n_defined": 3,
+     "mean_minutes": 106.666667,
+     "median_minutes": 120
+    }
+   },
+   "pr_classification": {
+    "308": {
+     "marks": "x1:claude",
+     "tools": "claude",
+     "modes": "ai_assisted",
+     "ai_used": 1
+    },
+    "309": {
+     "marks": "x2:claude",
+     "tools": "claude",
+     "modes": "ai_assisted",
+     "ai_used": 1
+    }
+   }
+  },
+  {
+   "name": "S6 own markers on and claude taken out: x1 (P8) and x2 (P9) are filtered too",
+   "fixture": "u5",
+   "vars": {
+    "include_own_markers": "1",
+    "tools_except": [
+     "claude"
+    ]
+   },
+   "time_to_first_review": {
+    "tool:copilot": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:cursor": {
+     "prs": 3,
+     "n_defined": 3,
+     "mean_minutes": 43.333333,
+     "median_minutes": 40
+    },
+    "tool:codex": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:devin": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:coderabbit": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "tool:cubic": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:graphite": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:macroscope": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:qodo": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:everything_else": {
+     "prs": 7,
+     "n_defined": 7,
+     "mean_minutes": 90,
+     "median_minutes": 90
+    },
+    "mode:cloud_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 50,
+     "median_minutes": 40
+    },
+    "mode:ai_assisted": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 35,
+     "median_minutes": 30
+    },
+    "mode:review_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "mode:ai_used": {
+     "prs": 5,
+     "n_defined": 5,
+     "mean_minutes": 47,
+     "median_minutes": 45
+    },
+    "mode:everything_else": {
+     "prs": 7,
+     "n_defined": 7,
+     "mean_minutes": 90,
+     "median_minutes": 90
+    }
+   },
+   "pr_classification": {
+    "308": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "309": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    }
+   }
+  },
+  {
+   "name": "S7 (V2 5) a custom tool acme (row: pr_author) and the built-in row cursor/pr_author removed: P10 is acme, P1 falls to everything_else",
+   "fixture": "u5",
+   "vars": {},
+   "custom_tools": {
+    "tools": [
+     {
+      "name": "acme",
+      "rows": [
+       {
+        "field": "pr_author",
+        "pattern": "^acme-agent\\[bot\\]$"
+       }
+      ]
+     }
+    ],
+    "remove": [
+     {
+      "tool": "cursor",
+      "field": "pr_author"
+     }
+    ]
+   },
+   "time_to_first_review": {
+    "tool:copilot": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:cursor": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 35,
+     "median_minutes": 30
+    },
+    "tool:claude": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 95,
+     "median_minutes": 90
+    },
+    "tool:codex": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:devin": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:coderabbit": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "tool:cubic": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:graphite": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:macroscope": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:qodo": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:acme": {
+     "prs": 1,
+     "n_defined": 1,
+     "mean_minutes": 20,
+     "median_minutes": 20
+    },
+    "tool:everything_else": {
+     "prs": 5,
+     "n_defined": 5,
+     "mean_minutes": 96,
+     "median_minutes": 70
+    },
+    "mode:cloud_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 30,
+     "median_minutes": 20
+    },
+    "mode:ai_assisted": {
+     "prs": 4,
+     "n_defined": 4,
+     "mean_minutes": 65,
+     "median_minutes": 40
+    },
+    "mode:review_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "mode:ai_used": {
+     "prs": 7,
+     "n_defined": 7,
+     "mean_minutes": 55,
+     "median_minutes": 45
+    },
+    "mode:everything_else": {
+     "prs": 5,
+     "n_defined": 5,
+     "mean_minutes": 96,
+     "median_minutes": 70
+    }
+   },
+   "pr_classification": {
+    "310": {
+     "marks": "m1:acme",
+     "tools": "acme",
+     "modes": "cloud_agent",
+     "ai_used": 1
+    },
+    "301": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    }
+   }
+  },
+  {
+   "name": "S8 (V2 6) first_reaction = any: P11 ends at the NORMAL comment of carol (15 minutes), P8 at the line comment (DIFF) of carol (35); the comment of the author, the unsent review and the bot's line comment of P12 do not count (60)",
+   "fixture": "u5",
+   "vars": {
+    "first_reaction": "any"
+   },
+   "time_to_first_review": {
+    "tool:copilot": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:cursor": {
+     "prs": 3,
+     "n_defined": 3,
+     "mean_minutes": 43.333333,
+     "median_minutes": 40
+    },
+    "tool:claude": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 15
+    },
+    "tool:codex": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:devin": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:coderabbit": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "tool:cubic": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:graphite": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:macroscope": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:qodo": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:everything_else": {
+     "prs": 5,
+     "n_defined": 5,
+     "mean_minutes": 85,
+     "median_minutes": 70
+    },
+    "mode:cloud_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 50,
+     "median_minutes": 40
+    },
+    "mode:ai_assisted": {
+     "prs": 4,
+     "n_defined": 4,
+     "mean_minutes": 43.75,
+     "median_minutes": 30
+    },
+    "mode:review_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "mode:ai_used": {
+     "prs": 7,
+     "n_defined": 7,
+     "mean_minutes": 48.571429,
+     "median_minutes": 45
+    },
+    "mode:everything_else": {
+     "prs": 5,
+     "n_defined": 5,
+     "mean_minutes": 85,
+     "median_minutes": 70
+    }
+   }
+  },
+  {
+   "name": "S9 a hostile include_own_markers ('1 OR 1=1'): sqlstring makes it a text that is not '1', the result is S0",
+   "fixture": "u5",
+   "vars": {
+    "include_own_markers": "1 OR 1=1"
+   },
+   "same_as": "S0"
+  },
+  {
+   "name": "S10 a hostile tools value (a quote and a comment): sqlstring doubles the quote, the text matches no tool, every PR is in everything_else",
+   "fixture": "u5",
+   "vars": {
+    "tools": [
+     "x') OR 1=1 --"
+    ]
+   },
+   "time_to_first_review": {
+    "tool:everything_else": {
+     "prs": 12,
+     "n_defined": 12,
+     "mean_minutes": 72.083333,
+     "median_minutes": 60
+    },
+    "mode:cloud_agent": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "mode:ai_assisted": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "mode:review_agent": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "mode:ai_used": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "mode:everything_else": {
+     "prs": 12,
+     "n_defined": 12,
+     "mean_minutes": 72.083333,
+     "median_minutes": 60
+    }
+   }
+  },
+  {
+   "name": "S11 own markers on and modes cloud + review only: the marks x1 (P8) and x2 (P9) give the mode AI-assisted, so they are out; P2, P3, P11 (assist) and the m3 of P7 too",
+   "fixture": "u5",
+   "vars": {
+    "include_own_markers": "1",
+    "modes": [
+     "cloud",
+     "review"
+    ]
+   },
+   "time_to_first_review": {
+    "tool:copilot": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:cursor": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 50,
+     "median_minutes": 40
+    },
+    "tool:claude": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:codex": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:devin": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:coderabbit": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "tool:cubic": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:graphite": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:macroscope": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:qodo": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "tool:everything_else": {
+     "prs": 8,
+     "n_defined": 8,
+     "mean_minutes": 82.5,
+     "median_minutes": 70
+    },
+    "mode:cloud_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 50,
+     "median_minutes": 40
+    },
+    "mode:ai_assisted": {
+     "prs": 0,
+     "n_defined": 0,
+     "mean_minutes": null,
+     "median_minutes": null
+    },
+    "mode:review_agent": {
+     "prs": 2,
+     "n_defined": 2,
+     "mean_minutes": 52.5,
+     "median_minutes": 45
+    },
+    "mode:ai_used": {
+     "prs": 4,
+     "n_defined": 4,
+     "mean_minutes": 51.25,
+     "median_minutes": 45
+    },
+    "mode:everything_else": {
+     "prs": 8,
+     "n_defined": 8,
+     "mean_minutes": 82.5,
+     "median_minutes": 70
+    }
+   },
+   "pr_classification": {
+    "308": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "309": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "302": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "303": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "311": {
+     "marks": null,
+     "tools": "everything_else",
+     "modes": "everything_else",
+     "ai_used": 0
+    },
+    "307": {
+     "marks": "m2:cursor",
+     "tools": "cursor",
+     "modes": "cloud_agent",
+     "ai_used": 1
+    }
+   }
+  }
+ ],
+ "u2_any": {
+  "_comment": "fixture_u2.sql with first_reaction = any: the only NORMAL or DIFF row of a person who is not the PR author is c:220:1 (bob, 30 minutes, PR Q20 whose first review is at 90). Q20 has no mark, so it is in tool:everything_else and mode:everything_else: 17 values, sum 1150 -> 1090, mean 64.117647; the median (9th of 17 sorted: 20 20 20 25 30 30 45 60 60 ...) stays 60. U1's first human reaction of Q20 is 30 (expected_u2_u1_cross.json comment, P-R2).",
+  "override": {
+   "tool:everything_else": {
+    "prs": 30,
+    "n_defined": 17,
+    "mean_minutes": 64.117647,
+    "median_minutes": 60
+   },
+   "mode:everything_else": {
+    "prs": 30,
+    "n_defined": 17,
+    "mean_minutes": 64.117647,
+    "median_minutes": 60
+   }
+  },
+  "q20_first_reaction_minutes": 30
+ }
+}

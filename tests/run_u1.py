@@ -12,6 +12,11 @@ container (also when something fails).
 Standard library and the docker CLI only. No network access other than pulling the MySQL image
 the first time. Nothing contacts GitHub.
 
+The dashboard variables (U5): include_own_markers (0|1), first_reaction (review|any), comparison (tools|modes|ai_used), and the lists tools
+and modes (--var tools=claude,cursor). A variable written ${name:sqlstring} in the SQL is replaced as Grafana's format option sqlstring does
+(each value in ' ', a ' doubled, values joined by a comma; tools/ai_impact_sql.py). Defaults: all tools of the identities list, all modes
+(cloud,assist,review), first_reaction=review, comparison=tools, include_own_markers=0.
+
 Usage: python tests/run_u1.py [--sql PATH] [--fixture PATH] [--expected PATH] [--var NAME=VALUE ...] [--image mysql:8.4]
 
 The first column of every "-- @metric" result is the row key. It must be unique inside one metric
@@ -33,12 +38,17 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
+import ai_impact_sql  # noqa: E402  (the sqlstring rule and the identities list, shared with tools/)
 PASSWORD = uuid.uuid4().hex  # root password of the throw-away container; new for every run, never stored
 DB = "lake"
 
 # Fixed values for the Grafana macros (period 2026-03-01 .. 2026-03-31, one repo).
-# U2 adds the merged_date filter and the dashboard variable include_own_markers (0 or 1, default 0).
-VARIABLES = {"include_own_markers": "0"}
+# U2 adds the merged_date filter and the dashboard variable include_own_markers (0 or 1, default 0); U5 adds tools, modes, first_reaction
+# and comparison. tools=None means "every tool of the identities list in the SQL that is run" (set in main).
+VARIABLES = {"include_own_markers": "0", "tools": None, "modes": ["cloud", "assist", "review"], "first_reaction": "review",
+             "comparison": "tools"}
+CHOICES = {"include_own_markers": ("0", "1"), "first_reaction": ("review", "any"), "comparison": ("tools", "modes", "ai_used")}
 
 
 def macros(variables):
@@ -48,7 +58,6 @@ def macros(variables):
         ("$__timeFilter(pr.merged_date)",
          "pr.merged_date BETWEEN '2026-03-01 00:00:00' AND '2026-03-31 23:59:59'"),
         ("${repo_id}", "'github:GithubRepo:1:1'"),
-        ("${include_own_markers}", variables["include_own_markers"]),
     ]
 
 
@@ -99,6 +108,7 @@ def split_sql(path):
 def apply_macros(text, variables):
     for k, v in macros(variables):
         text = text.replace(k, v)
+    text = ai_impact_sql.apply_variables(text, variables)   # ${name:sqlstring}; a bare ${name} as Grafana's MySQL data source fills it in
     if "$__" in text or "${" in text:
         raise RuntimeError("a Grafana macro was not replaced")
     return text
@@ -129,14 +139,23 @@ def main():
     variables = dict(VARIABLES)
     for item in a.var:
         k, _, v = item.partition("=")
-        if k not in VARIABLES or v not in ("0", "1"):
-            print("unknown variable or value (only include_own_markers=0|1): %s" % item, file=sys.stderr)
+        if k in CHOICES and v in CHOICES[k]:
+            variables[k] = v
+        elif k == "modes" and v and set(ai_impact_sql.split_list(v)) <= set(ai_impact_sql.MODES):
+            variables[k] = ai_impact_sql.split_list(v)
+        elif k == "tools" and v and all(ai_impact_sql.NAME_RE.fullmatch(x) for x in ai_impact_sql.split_list(v)):
+            variables[k] = ai_impact_sql.split_list(v)
+        else:
+            print("unknown variable or value (include_own_markers=0|1, first_reaction=review|any, comparison=tools|modes|ai_used, "
+                  "modes=cloud,assist,review, tools=a,b): %s" % item, file=sys.stderr)
             return 2
-        variables[k] = v
-    print("variables: " + ", ".join("%s=%s" % kv for kv in sorted(variables.items())))
 
     expected = json.loads(Path(a.expected).read_text(encoding="utf-8"))["metrics"]
     common, metrics = split_sql(Path(a.sql))
+    if variables["tools"] is None and ai_impact_sql.IDENTITIES_START in common:
+        variables["tools"] = ai_impact_sql.all_tools(common)
+    print("variables: " + ", ".join("%s=%s" % (k, ",".join(v) if isinstance(v, list) else v)
+                                    for k, v in sorted(variables.items()) if v is not None))
 
     name = "u1-arb-test-" + uuid.uuid4().hex[:8]
     state = {"started": False}
