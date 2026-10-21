@@ -3,13 +3,13 @@
 Status: accepted (2026-10-20). Scope: `importer/github_pr_assignees.py`, `tests/importer/`, `docs/importer.md`; MySQL only.
 
 Quotes are written `> "..." (path L<n>; URL; retrieved <date>)` and are copied word for word from the saved copy of the file (leading tabs and spaces of a source line are left out).
-The paths are relative to the research folder `research/` (kept outside this repository). **Every citation carries the URL and the date retrieved that are written on line 1 of the cited saved file.**
+The paths are relative to the author's research folder `research/`, which is not published (see `docs/glossary.md`); the repository path at the tag, and so the public URL, is given for each file. **Every citation carries the URL and the date retrieved that are written on line 1 of the cited saved file.**
 The line numbers are the line numbers of the saved file. `v3/upstream/beta18/*.txt` are single files of apache/devlake at the tag `v1.0.3-beta18`; their line 1 is
 `<path in the repository> @ v1.0.3-beta18 (apache/devlake) retrieved <date>`, so their line numbers are one more than in the original file, and the URL given is
 `https://github.com/apache/devlake/blob/v1.0.3-beta18/<that path>`. The files of `v3/upstream/beta18/r9_scan/` are the 220 `.go` files of `backend/plugins/github/` and
 `backend/plugins/github_graphql/` at the same tag, saved the same way (file name = path with `/` written as `__`). Files read for this ADR:
 
-| Saved file (under `research/v3/upstream/beta18/`) | Repository path at the tag |
+| Saved copy (under `research/v3/upstream/beta18/`, not published) | Repository path at the tag (URL: `https://github.com/apache/devlake/blob/v1.0.3-beta18/` + the path) |
 |---|---|
 | `didgen_domain_id_generator.go.txt` | backend/core/models/domainlayer/didgen/domain_id_generator.go |
 | `github_pr_convertor.go.txt` | backend/plugins/github/tasks/pr_convertor.go |

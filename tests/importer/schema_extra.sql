@@ -2,7 +2,7 @@
 -- tests/schema_mysql.sql is not changed; this file is loaded after it (tests/importer/test_importer.py).
 -- Types follow the gorm tags of Apache DevLake tag v1.0.3-beta18 (Apache-2.0):
 --   [BASE] https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/core/models/common/base.go
---          (saved as research/v3/upstream/beta18/common_base.go.txt; its line numbers are one more than the original's)
+--          (the line numbers below are those of the original file at that URL; a copy that is saved with a header line has them one more)
 --   RawDataOrigin (embedded in NoPKModel, which DomainEntity and PullRequestAssignee embed):
 --     [BASE] RawDataParams  string  gorm:"column:_raw_data_params;type:varchar(255);index"   (original line 54)
 --     [BASE] RawDataTable   string  gorm:"column:_raw_data_table;type:varchar(255)"          (original line 55)

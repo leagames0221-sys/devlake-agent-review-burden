@@ -1,9 +1,8 @@
 # Input files of the importer test (`pages_*.json`)
 
 These are written by hand from the documented response of GitHub's "List pull requests"
-(`research/build/1_2_github_rest_pulls.txt`, https://docs.github.com/en/rest/pulls/pulls, retrieved 2026-10-19; the
-`assignees` array starts at line 523 of the saved copy). The `Link` header strings follow the pagination page
-(`research/build/12_github_rest_pagination.txt` L315 and L385, https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api, retrieved 2026-10-20).
+(https://docs.github.com/en/rest/pulls/pulls, retrieved 2026-10-19; the text of those pages is GitHub Docs content under CC BY 4.0, see the NOTICE). The `Link` header strings follow the pagination page
+(https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api, retrieved 2026-10-20).
 
 Format of a file: `[{"url": <the page's URL>, "link": <Link header string or null>, "body": <the page's array of pull requests>}]`.
 Only `id` of a pull request and `id` / `login` of each assignee are read by the script; the other fields are in the files on purpose, to show that they are ignored.

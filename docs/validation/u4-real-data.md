@@ -6,9 +6,9 @@ Record of the U4 check (SPEC U4), third run (after D15). Two public repositories
 
 - **297 PRs compared, 297 of them with every item equal** (7062 of 7062 items equal). Times, sizes, outcomes, the period flags, U1's agent group, (1) and (1B) are equal on every PR, and so are m1 to m6, x1 and x2, the tool and mode groups. The 289 / 291 group values (parity / own markers) and the 63 U1 group values of each of the three sets are equal too, with no replacement of any PR's group (section 8).
 - **Three runs of the same check on the same DevLake database** (no new import between them; the raw data of GitHub and `independent_calc.py` are the same in all three):
-  - **First run (SQL of commit 665e049):** 253 of 297 PRs with every item equal. Two defects of the SQL (class (a)): **A1 (m1)**, DevLake's GraphQL path stores the author of a bot's PR without `[bot]` (`pull_requests.author_name` is `cursor`, `claude`, `copilot-swe-agent`) while `accounts.user_name` is `cursor[bot]`, `claude[bot]`, `Copilot`: 43 PRs had lost the m1 mark; **A2 (m4, m5)**, `commits.message` is a `longblob` in the real DevLake (the test schema had `LONGTEXT`), so `LOWER()` and `REGEXP_LIKE` were case-sensitive and the usual `Co-Authored-By: Claude` line was not found (0 of the 9 PRs that have an m4 mark in GitHub's data).
+  - **First run (SQL of commit 111a923):** 253 of 297 PRs with every item equal. Two defects of the SQL (class (a)): **A1 (m1)**, DevLake's GraphQL path stores the author of a bot's PR without `[bot]` (`pull_requests.author_name` is `cursor`, `claude`, `copilot-swe-agent`) while `accounts.user_name` is `cursor[bot]`, `claude[bot]`, `Copilot`: 43 PRs had lost the m1 mark; **A2 (m4, m5)**, `commits.message` is a `longblob` in the real DevLake (the test schema had `LONGTEXT`), so `LOWER()` and `REGEXP_LIKE` were case-sensitive and the usual `Co-Authored-By: Claude` line was not found (0 of the 9 PRs that have an m4 mark in GitHub's data).
   - **Second run (A1 and A2 corrected):** 292 of 297 PRs with every item equal. The 5 PRs left, all on m4, were classed (c) (DevLake lacks the data) by the rule decided before the run: `commits` had no text for the commits of their branch (45 of the 275 PRs opened in the period had a text, 16.4%). D15 later found that the text was in DevLake's tool table, so the cause was that the SQL read only `commits`.
-  - **Third run (this record; SQL of commit bbfc1d3, D15):** the text of a commit of a PR is also read from DevLake's GitHub tool table `_tool_github_commits` when `commits` has none. 297 of 297 PRs have every item equal; (a), (b), (c), (d) = 0, 0, 0, 0. The text of the commits could be read for 267 of the 275 PRs opened in the period (97.1%); the other 8 have no commit in GitHub either (section 6). m4 is found for 9 of the 9 PRs that have it in GitHub's data.
+  - **Third run (this record; SQL of commit a0ba005, D15):** the text of a commit of a PR is also read from DevLake's GitHub tool table `_tool_github_commits` when `commits` has none. 297 of 297 PRs have every item equal; (a), (b), (c), (d) = 0, 0, 0, 0. The text of the commits could be read for 267 of the 275 PRs opened in the period (97.1%); the other 8 have no commit in GitHub either (section 6). m4 is found for 9 of the 9 PRs that have it in GitHub's data.
 - The merge (squash) commit of a PR is not used for m4 and m5, although `commits` has it for most merged PRs (ADR 0002, D15; section 6).
 - Mutant M3 (section 9) is caught: 28 PRs differ on time to first review. The seven checks of ADR 0003 on a real DevLake are in section 10; the importer works on the real tables (102 rows written).
 
@@ -35,7 +35,7 @@ The rule list was fixed before looking at results (SPEC U4 3-1). Number of repos
 
 Step 8 ranked the 169 by the number of PRs in the period; these two are the first two (150 and 147 PRs). Rule 7 was evaluated for these two only; the other 167 were not evaluated for it.
 
-Two departures from the specification, found before this trip and kept as they are:
+Two departures from the specification, found before the run and kept as they are:
 
 1. **The search was a sample for the biggest tools.** The GitHub search API returns at most 1,000 hits per query; for tools with more hits in a month, the search was split by day and only the first pages of each day were read (copilot-swe-agent 24.8% of the created hits, devin 37.7%, cursor 46.5%, claude 68.1%). The candidate list is therefore not complete for these tools; the PR counts of the chosen repositories were counted per repository and are not a sample.
 2. **The import took only three Data Entities.** The first import (all entities) was stopped: the CI part of sanity-io/cli has 82,245 workflow runs (DevLake asks for the jobs of a run one run at a time), more than 16 hours at 5,000 calls an hour. The Scope Config `u4-code-review-only` selects `CODE`, `CODEREVIEW`, `CROSS` (Source Code Management, Code Review, Cross Domain). The metrics use no CI or issue table. The workflow-run count that `plan` of `tools/devlake_configure.py` prints is the `total_count` of GitHub's API; for sanity-io/cli it showed 40,000 while DevLake got 82,245 runs, so that count can come out smaller than the real number and is not an upper bound. The second import (pipeline #2, 7 min 43 s) is the one compared.
@@ -51,7 +51,7 @@ Two departures from the specification, found before this trip and kept as they a
 | Data Entities | `CODE`, `CODEREVIEW`, `CROSS` (deviation 2 above) |
 | import finished (pipeline #2, `TASK_COMPLETED`) | 2026-10-20 17:14:00 UTC |
 | latest pipeline in the DevLake database (SELECT on `_devlake_pipelines`, 2026-10-21) | #4, finished 2026-10-20 17:58:45 UTC (the checks of section 10; no import since) |
-| SQL files run (third run) | `sql/mysql/ai_impact_parity.sql`, `agent_review_burden.sql`, `checks/per_pr.sql`, `checks/per_pr_u1.sql` as of commit bbfc1d3 (no change to `sql/mysql` since) |
+| SQL files run (third run) | `sql/mysql/ai_impact_parity.sql`, `agent_review_burden.sql`, `checks/per_pr.sql`, `checks/per_pr_u1.sql` as of commit a0ba005. `sql/mysql` has changed since (U5: the commits that added the dashboard variables of ADR 0002 D16 and D17 and that applied the review findings of the screen); with the default values of the variables the 65 runs give files byte-identical to this run and the same comparison (297 of 297), which is ADR 0004 Appendix B, V3 |
 | raw data fetched | 2026-10-20 17:17:36 to 17:29:39 UTC, 1,485 REST calls (every list was one page) |
 | `GITHUB_PR_EXCLUDELIST` in the DevLake container | not set |
 | rule for class (d) | a PR whose `updated_at` in the raw data is later than 17:14:00 UTC: **0** PRs |
@@ -60,7 +60,7 @@ Two departures from the specification, found before this trip and kept as they a
 
 - **Independent calculation:** a separate script reads GitHub's answers for `pulls/{n}`, `pulls/{n}/reviews`, `pulls/{n}/comments`, `issues/{n}/comments`, `pulls/{n}/commits` and computes, per PR, the marks m1 to m6 (and x1, x2), the tool and mode groups, time to first review, time in review, cycle time, size, outcome, (1), (1B) and U1's agent group, from the definitions of ADR 0002 (D1 to D14) and ADR 0001. Minutes are cut toward zero; the median is the highest value with `percent_rank() <= 0.5`. sha256 of the script: `a341e6f00fa81ad5054b315b793d90968019960656304d359a9d852d51766914` at the start of the check and `a341e6f00fa81ad5054b315b793d90968019960656304d359a9d852d51766914` at the end (unchanged, no change was needed).
 - **SQL side:** `tools/run_on_devlake.py` runs the `@common` WITH list of `ai_impact_parity.sql` (or `agent_review_burden.sql`) on the real DevLake with the period and the two repo ids, and `sql/mysql/checks/per_pr.sql` / `per_pr_u1.sql` add one SELECT per PR on the same list, unchanged. `pr_classification` gives the marks, tools and modes.
-- **Which SQL:** the first run used the SQL of commit 665e049. The SQL was then corrected (A1, A2; section 7) and everything was run again on the same DevLake database (second run). It was then extended by D15 (commit bbfc1d3) and everything was run a third time on the same database. This record gives the third run; the first and second run are in the comparison table of section 7. The CSV files of the third run were produced again from the database on 2026-10-21 and are identical to the saved ones (65 of 65 files).
+- **Which SQL:** the first run used the SQL of commit 111a923. The SQL was then corrected (A1, A2; section 7) and everything was run again on the same DevLake database (second run). It was then extended by D15 (commit a0ba005) and everything was run a third time on the same database. This record gives the third run; the first and second run are in the comparison table of section 7. The CSV files of the third run were produced again from the database on 2026-10-21 and are identical to the saved ones (65 of 65 files).
 - **Items compared per PR:** m1 to m6; tools, modes, ai_used; x1, x2; tools, modes, ai_used with the own markers; time to first review, time in review, cycle time (whole minutes); size; outcome; the two period flags; and for PRs opened in the period U1's agent group, (1), (1B). 21 items, 24 for the 275 PRs opened in the period.
 - **Identity of a PR:** all 297 DevLake ids end with the REST `id` of the PR (`github:GithubPullRequest:1:<id>`), so the GraphQL `databaseId` and the REST `id` are the same number (R4 of ADR 0003); the DevLake set of PRs (opened or merged in the period) is exactly the 297 PRs of the GitHub list.
 
@@ -68,7 +68,7 @@ Two departures from the specification, found before this trip and kept as they a
 
 Classes of a difference (SPEC U4 3-3 and 4-3): (a) the SQL is wrong; (b) the independent script is wrong; (c) DevLake lacks the data, only for the causes listed before the run (PR created before the start of the Data Time Range; more than 100 commits or reviews; m4/m5 on a PR whose branch commits have no message in DevLake; PRs dropped by `GITHUB_PR_EXCLUDELIST`; comments deleted later); (d) the PR changed between the DevLake import and the raw fetch.
 
-In the second run the 5 m4 PRs were classed (c) by this rule. D15 showed that their text was in DevLake's GitHub tool table, so the cause was that the SQL read only `commits` (fixed in the SQL, commit bbfc1d3); in the third run no PR is in class (c).
+In the second run the 5 m4 PRs were classed (c) by this rule. D15 showed that their text was in DevLake's GitHub tool table, so the cause was that the SQL read only `commits` (fixed in the SQL, commit a0ba005); in the third run no PR is in class (c).
 
 ## 5. Result per item
 
@@ -155,9 +155,9 @@ m5 has no PR in this data, so its place for the tool text is measured on the syn
 
 ## 7. Defects and gaps found on the real data, and the fixes
 
-The first run (SQL of commit 665e049) found two defects in the SQL itself (class (a)). They were corrected (commit 076522f), the synthetic tests got a scene for each, and the whole check was run again (second run). The second run left 5 PRs classed (c) by the rule decided before the run (DevLake lacks the data); D15 found that the text was in DevLake's tool table, so the cause was that the SQL read only `commits`, and the SQL was fixed (commit bbfc1d3; third run = this record). The sources, the SELECTs on the real database and their results are in ADR 0002, sections "What a real DevLake showed (U4): two corrections, A1 and A2" and "D15"; the mutations that fail without the corrections are in its Appendix B3 and B4.
+The first run (SQL of commit 111a923) found two defects in the SQL itself (class (a)). They were corrected (commit 71e1057), the synthetic tests got a scene for each, and the whole check was run again (second run). The second run left 5 PRs classed (c) by the rule decided before the run (DevLake lacks the data); D15 found that the text was in DevLake's tool table, so the cause was that the SQL read only `commits`, and the SQL was fixed (commit a0ba005; third run = this record). The sources, the SELECTs on the real database and their results are in ADR 0002, sections "What a real DevLake showed (U4): two corrections, A1 and A2" and "D15"; the mutations that fail without the corrections are in its Appendix B3 and B4.
 
-| | first run (665e049) | second run (A1, A2) | third run (D15, bbfc1d3) |
+| | first run (111a923) | second run (A1, A2) | third run (D15, a0ba005) |
 |---|---|---|---|
 | PRs with every item equal | 253 of 297 (6988 of 7062 items) | 292 of 297 (7051 of 7062 items) | 297 of 297 (7062 of 7062 items) |
 | (a) the SQL is wrong | 43 PRs (43 on m1, 4 of these also on m4) | 0 | 0 |
@@ -176,7 +176,7 @@ The first run (SQL of commit 665e049) found two defects in the SQL itself (class
 
 ## 8. Group values
 
-Group means, medians and counts from the SQL on the real DevLake, both repositories together (minutes, whole minutes cut toward zero; TTFR = time to first review; size = additions + deletions). These values are from the SQL of commit bbfc1d3 (third run, section 7).
+Group means, medians and counts from the SQL on the real DevLake, both repositories together (minutes, whole minutes cut toward zero; TTFR = time to first review; size = additions + deletions). These values are from the SQL of commit a0ba005 (third run, section 7).
 
 **Rule for the cells:** a mean or median whose count n is 1 or 2 is written `(hidden, n<3)` and the count stays (n = TTFR n for the time to first review, PRs merged for time in review and cycle time, PRs opened for size, PRs with a reaction for U1), so that the time or size of a single PR cannot be read back from a group value. A count of 0 is written `-`. 7 cells are hidden in the tables below.
 
@@ -227,7 +227,7 @@ Checks of these tables. Compared as they are (the group of every PR from GitHub'
 
 ## 9. The comparison can catch a wrong SQL (mutant M3)
 
-M3 of ADR 0002 (D2: the first review is only an APPROVED or CHANGES_REQUESTED review) was put into a copy of the `ai_impact_parity.sql` of commit bbfc1d3 (one added line in the `first_review` list: `WHERE status IN ('APPROVED', 'CHANGES_REQUESTED')`; the repo file was not touched) and the same per-PR and group comparison was run on the real DevLake. Result: 28 PRs differ on time to first review (0 without the mutation); 269 PRs have every item equal (297 without the mutation); 15 of the 289 group values differ (15 of them time-to-first-review values; 0 without the mutation, no replacement of any PR's group). The comparison catches it. (The same mutant on the SQL before D15 gave 28 PRs that differ on time to first review and 265 PRs with every item equal, of 292 without the mutation.)
+M3 of ADR 0002 (D2: the first review is only an APPROVED or CHANGES_REQUESTED review) was put into a copy of the `ai_impact_parity.sql` of commit a0ba005 (one added line in the `first_review` list: `WHERE status IN ('APPROVED', 'CHANGES_REQUESTED')`; the repo file was not touched) and the same per-PR and group comparison was run on the real DevLake. Result: 28 PRs differ on time to first review (0 without the mutation); 269 PRs have every item equal (297 without the mutation); 15 of the 289 group values differ (15 of them time-to-first-review values; 0 without the mutation, no replacement of any PR's group). The comparison catches it. (The same mutant on the SQL before D15 gave 28 PRs that differ on time to first review and 265 PRs with every item equal, of 292 without the mutation.)
 
 ## 10. The seven checks of ADR 0003 on the real DevLake
 

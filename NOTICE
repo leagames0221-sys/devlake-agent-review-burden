@@ -74,5 +74,22 @@ of apache/devlake (https://github.com/apache/devlake/blob/v1.0.3-beta18/<path>#L
    (the first-commit query is around line 206 and the first-review query around line 248
    of the original file).
 
+10. The Grafana screen (U5: dashboards/, tools/build_dashboard.py, tools/grafana_install.py). The shape of
+   the dashboard json follows (a text panel, then rows; `"timezone": "utc"`; the data source
+   `{"type": "mysql", "uid": "devlake-mysql-api"}`), and the fields of the provider file dashboards/provisioning/ai-impact.yml
+   follow. One thing is copied: the query of the variable `repo_id` (`select concat(name, '--', id) as text from repos where
+   id like 'gitlab%'`) and its regex /^(?<text>.*)--(?<value>.*)$/ from Gitlab.json, with `gitlab%` changed to `github%`.
+   No panel is copied. Sources:
+     grafana/dashboards/mysql/Gitlab.json
+     grafana/dashboards/mysql/engineering-throughput-and-cycle-time.json
+     grafana/provisioning/dashboards/dashboard.yml
+     grafana/scripts/entrypoint.sh (the data source uid)
+     grafana/Dockerfile (the provider path /etc/grafana/dashboards, not used by this repo)
+   of apache/devlake at tag v1.0.3-beta18, at https://github.com/apache/devlake/blob/v1.0.3-beta18/<path>.
+
 Apache DevLake's own NOTICE and license terms apply to the parts above:
 https://www.apache.org/licenses/LICENSE-2.0
+
+The files tests/importer/pages_*.json are built from response examples in GitHub Docs (https://docs.github.com/en/rest/pulls/pulls and
+https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api), whose content is licensed under CC BY 4.0;
+the license page is https://github.com/github/docs/blob/main/LICENSE .
