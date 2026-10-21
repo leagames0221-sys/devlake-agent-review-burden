@@ -1,6 +1,6 @@
 # ADR 0002: Metrics and AI-tool groups defined as Swarmia defines them
 
-Status: accepted (2026-10-20). Scope: `sql/mysql/ai_impact_parity.sql`, synthetic tests, MySQL only.
+Status: accepted (2026-10-20); A1 and A2 added after U4 (2026-10-21), D15 added 2026-10-21. Scope: `sql/mysql/ai_impact_parity.sql`, synthetic tests, MySQL only.
 
 Quotes are written `> "..." (path L<n>; URL; retrieved <date>)` and are copied word for word from the saved copy of the page. The paths are relative to the
 research folder `research/v3/` (kept outside this repository). **Every citation carries the URL and the date retrieved that are written on line 1 of the cited saved file**, so that a
@@ -178,6 +178,8 @@ The probes of Appendix A were run on `mysql:8.4` with that collation; what they 
 - **PR author.** m1 matches the login of the account of the PR author, not `pull_requests.author_name` (A1 above).
 - **Logins and names** are anchored with `^...$` (probe 2a: `copilot-fan` matches an unanchored `copilot`). A literal `[bot]` is written `\\[bot\\]` in the SQL file (the first level is MySQL's
   string escape); unescaped, `[bot]` is a character class (probes 3b, 3c).
+- **Where the text comes from** (D15). The text of a commit of a PR is `COALESCE(NULLIF(CONVERT(commits.message USING utf8mb4), ''), _tool_github_commits.message)`: the domain table first, the GitHub tool table when the domain table has no row or an empty text.
+  Both are matched with the same patterns, on `LOWER(text)`. The merge (squash) commit of a PR is not read.
 - **Trailers** (`Co-authored-by:`, `Made-with:`) count only at the start of a line, in two shapes, because a message can be in two shapes:
   real line breaks (`'m'` flag, LF and CRLF, probes 4a, 5a), or DevLake's JSON-string body (below), which has the quotes and the two characters `\n` and no line break
   (probes 6a to 6d): `(^"?|\\\\n)co-authored-by:...`. A trailer in the middle of a sentence matches neither (probes 4c, 6d, 8b).
@@ -201,7 +203,11 @@ converted into `commits`. I did not run the import to check this. How DevLake's 
 1. joins `commits` with a `LEFT JOIN`;
 2. keeps a PR in every count when its message is missing;
 3. matches both shapes of the message (above);
-4. gives `check:prs_without_commit_message`, the number of PRs for which no message could be read.
+4. gives `check:prs_without_commit_message`, the number of PRs for which no message could be read (since D15: from `commits` nor from the GitHub tool table), and
+   `check:prs_commit_message_from_tool_table`, the number of PRs with at least one commit whose message was read from the tool table.
+
+U4 measured the inference above on real data: `commits` (2,769 rows) holds the text of a branch commit for 45 of the 275 PRs opened in the period. The same text is in the GitHub tool table
+`_tool_github_commits`, for every commit that `pull_request_commits` lists (D15 below).
 
 A review is stored with type `REVIEW`, the state of GitHub in `status` and, for a review without a submit time, no time
 (upstream/beta18/pr_review_convertor.go.txt L92-L96; https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github/tasks/pr_review_convertor.go; retrieved 2026-10-20). Unsent (`PENDING`) reviews are dropped at import
@@ -214,6 +220,7 @@ The time a review was **requested** is in no DevLake table that was searched (be
 
 U4 (docs/validation/u4-real-data.md) ran this SQL on a real DevLake v1.0.3-beta18 (two public repositories, 297 PRs of 2026-09) and compared every PR with GitHub's raw data.
 It found two shapes of the real tables that the synthetic tests did not have. Both were in the SQL, both are corrected, and both have a scene in the fixture that fails without the correction.
+It also left 5 PRs on m4 (class (c)) because `commits` had no text for their branch commits; that one is not an error of the SQL, and D15 (next section) closes it: after D15 all 297 PRs have every item equal.
 
 **A1: the PR author is read from `accounts`, not from `pull_requests.author_name`.**
 
@@ -258,11 +265,64 @@ It found two shapes of the real tables that the synthetic tests did not have. Bo
   `SUM(LOCATE('co-authored-by', LOWER(message)) > 0)` = 0 and `SUM(LOCATE('co-authored-by', LOWER(CONVERT(message USING utf8mb4))) > 0)` = 1,621. In U4 the m4 mark was found for 0 of the 9 PRs that have it in GitHub's data.
 - *Correction.* `pr_commit.message` is `CONVERT(cm.message USING utf8mb4)`; m4 and m5 read it with `LOWER()` and `REGEXP_LIKE` as before. `tests/schema_mysql.sql` has `commits.message LONGBLOB`, so that all tests use the real type (a string literal is stored as bytes).
   After the correction 4 of the 9 PRs are found; for the other 5 none of the commits of the PR's branch (the commits listed in `pull_request_commits`) has a message in DevLake (class (c) of U4: `commits` is filled by DevLake's git extractor and has 2,769 rows for 5,213 rows of `pull_request_commits`, so the message of a branch commit could be read for 45 of the 275 PRs opened in the period, and for 17 of the 234 PRs created in the period and merged).
-  All 5 are merged and their merge commit (one parent) is in `commits`; for two of them the merge commit has a `Co-authored-by: Claude` line. The definition of m4 looks at the commits of the PR's branch, not at the merge commit, so that line is not counted (U4 section 5).
-  That is a lack of data, not an error of the SQL, and it stays.
+  All 5 are merged and their merge commit (one parent) is in `commits`; for two of them the merge commit has a `Co-authored-by: Claude` line. The definition of m4 looks at the commits of the PR's branch, not at the merge commit, so that line is not counted (U4 section 6).
+  That was a lack of data in `commits`, not an error of the SQL, and A2 left it as it was. **D15 (next section) closes it:** the text of the branch commits is also read from the GitHub tool table, and then all 9 PRs are found (4 of 9 after A2 alone).
+  The merge commit is still not used.
 
 Scenes: `fixture_u2.sql` Q55 (the account is `cursor[bot]`, `author_name` is `cursor`: m1) and Q56 (a person's PR, the commit text `Co-Authored-By: Claude <...>` in a LONGBLOB: m4); `fixture_u1.sql` P14 (account `Copilot`, `author_name` `copilot-swe-agent`),
 P15 (account `devin-ai-integration[bot]`, `author_name` `devin-ai-integration`), P16 (no account row: `author_name` is used). Mutations: Appendix B3.
+
+### D15: the text of the commits of a PR, and why merge commits are not used
+
+*Question.* After A2, 5 of the 9 PRs that have an m4 mark in GitHub's data were still missed: `commits` has no text for the commits of their branch (class (c) of U4). For most merged PRs `commits`
+does have the commit that the merge made (a squash). May that commit be used for m4 and m5?
+
+*Decision.* **No.** m4 and m5 read the text of the commits that `pull_request_commits` lists for the PR, and the text of one commit is
+
+```
+COALESCE(NULLIF(CONVERT(commits.message USING utf8mb4), ''), _tool_github_commits.message)
+```
+
+That is: `commits` first, as before (A2), and the GitHub tool table when `commits` has no row for the commit or an empty text. The two tables are joined on `commit_sha` = `_tool_github_commits.sha` (the primary key of that
+table is `sha` alone, it has no connection column). The tool table is read through the CTE `tool_commits` of the SQL, which is an adjustment point (see "Consequences and limits").
+
+**Facts.** Every row is a claim, the saved file and line (paths relative to `research/v3/`; the line numbers are those of the saved file, whose line 1 carries the URL and the date), and the words of the file. The last row is a SELECT, not a quote.
+
+| # | Claim | Source (saved file, line; URL; retrieved) | Words of the file |
+|---|---|---|---|
+| F1 | Swarmia's rule for the high-confidence AI mark is about the commits of the PR | `merge_commit/swarmia_ai_tool_detection.md` L16; https://help.swarmia.com/features/ai-tools/ai-tool-detection-and-filters.md; retrieved 2026-10-21 | "Any of its commits were authored or co-authored by an AI tool" |
+| F2 | The data model of Swarmia gives the authors "of commits in the pull request" | `merge_commit/swarmia_data_model_pull_request.md` L340; https://help.swarmia.com/data-model/entities/pull-request.md; retrieved 2026-10-21 | "Authors and co-authors of commits in the pull request, including AI coding agents." |
+| F3 | Swarmia reads the `Co-authored-by` trailer of the commits of the PR (here: the first two commits, for a cloud agent) | `merge_commit/swarmia_cloud_agents.md` L150; https://help.swarmia.com/features/ai-tools/cloud-agents.md; retrieved 2026-10-21 | "The first non-bot author credited in a `Co-authored-by` trailer on the pull request's first two commits." |
+| F4 | For a squashed PR Swarmia says it keeps the history of the PR, and names cycle time and the Work Log as the reason | `merge_commit/swarmia_faq_tracking_squashed_commits.md` L12; https://help.swarmia.com/definitions/frequently-asked-questions/tracking-squashed-commits.md; retrieved 2026-10-21 | "Swarmia will keep the history available in the context of the pull request. This way we'll report cycle time correctly, and you'll see the detailed work in views like Work Log." |
+| F5 | Nothing on the searched Swarmia pages says that a squash or merge commit is used to detect an AI tool | the pages `ai-tool-detection-and-filters`, `cloud-agents`, `data-model/entities/pull-request`, `why-is-my-commit-not-visible-in-swarmia`, `how-do-merge-queues-affect-my-metrics` (saved as `merge_commit/swarmia_ai_tool_detection.md`, `swarmia_cloud_agents.md`, `swarmia_data_model_pull_request.md`, `swarmia_faq_commit_not_visible.md`, `swarmia_faq_merge_queues.md`) and `llms.txt` (`merge_commit/swarmia_llms.txt`); retrieved 2026-10-21 | no quote. `grep -c -i 'squash\|merge commit\|merged commit'` gives 0 for the five pages; 7 for `swarmia_faq_tracking_squashed_commits.md` (F4: a page about cycle time, with no occurrence of "co-author" or "trailer"); 1 for `swarmia_llms.txt` (the index line of that page) |
+| F6 | The default text of a squash commit depends on the settings of the repository, and the person who merges can edit it | `merge_commit/gh_config_squash.md` L28; https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/configuring-commit-squashing-for-pull-requests; retrieved 2026-10-21. `merge_commit/gh_reference_pull_request_merges.md` L49; https://docs.github.com/en/pull-requests/reference/pull-request-merges; retrieved 2026-10-21 | L28: "You can also choose to use just the pull request title, the pull request title and commit details, or the pull request title and description." L49: "generates a default commit message that you can edit. The default message can include the pull request title, pull request description, or commit information, depending on repository settings and the number of commits in the pull request." |
+| F7 | GitHub names the loss of the authors of the commits as a cost of squashing | `merge_commit/gh_about_merge_methods.md` L34; https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github; retrieved 2026-10-21 | "You lose information about when specific changes were originally made and who authored the squashed commits." |
+| F8 | The searched GitHub pages do not say that a squash adds a `Co-authored-by` line | `merge_commit/gh_multiple_authors.md` L28; https://docs.github.com/en/pull-requests/how-tos/commit-changes/creating-a-commit-with-multiple-authors; retrieved 2026-10-21. Searched for "co-author": `gh_multiple_authors.md` (hits about writing the trailer by hand), `gh_reference_pull_request_merges.md` and `gh_about_merge_methods.md` (0 hits) | L28: "Add one or more `Co-authored-by` trailers to a commit message to attribute a commit to multiple authors." |
+| F9 | On the GraphQL path DevLake writes the text of a commit of a PR, as a plain string, into the model `GithubCommit`, whose table is `_tool_github_commits` | `upstream/beta18/graphql_pr_extractor.go.txt` L198-L201; https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github_graphql/tasks/pr_extractor.go; retrieved 2026-10-20. `graphql_pr_collector.go.txt` L144; https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github_graphql/tasks/pr_collector.go; retrieved 2026-10-20. `github_commit.go.txt` L43-L44; https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github/models/commit.go; retrieved 2026-10-20 | L201: "Message:        prCommit.Commit.Message,". L144: "Message string". L44: ``return "_tool_github_commits"`` |
+| F10 | On the REST path the text is the raw JSON value, converted to a string | `upstream/beta18/github_pr_commit_extractor.go.txt` L68 and L127; https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github/tasks/pr_commit_extractor.go; retrieved 2026-10-20 | L68: "Message json.RawMessage". L127: "Message:        string(prCommit.Commit.Message)," |
+| F11 | The primary key of the tool table is `sha`; the text column is a Go `string` | `upstream/beta18/github_commit.go.txt` L27 and L36; https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/plugins/github/models/commit.go; retrieved 2026-10-20 | L27: ``Sha            string `gorm:"primaryKey;type:varchar(40)"` ``. L36: "Message        string" |
+| F12 | Real data (SELECT on the DevLake database `lake`, 2026-10-21): the tool table holds the text of every commit that `pull_request_commits` lists | `pull_request_commits`: 5,213 rows, 4,976 different `commit_sha`; 1,201 of them are in `commits`, 4,976 in `_tool_github_commits`. `_tool_github_commits.message` is `longtext` (`utf8mb4_bin`), the primary key is `sha`. For the 1,201 shas that are in both tables the two texts are equal once the line break at the end is removed (949 domain texts end with one, no tool text does). Of the 4,976 tool texts, 3,050 have a real line break (the others are one line); none is empty, none starts with a quote, none contains the two characters `\n` (the JSON-string shape was not seen in this table) | (counts, not a quote; the SELECTs are in `research/u4/counts_d15_now.sql`, outside this repository) |
+
+**Interpretation.** These are my readings of the facts; no source says them.
+
+1. The text of a squash commit is decided by the settings of the repository and by whoever merges (F6), not by the commits of the PR. A repository set to "title only" drops every trailer of the branch commits, and a person can delete or add a line.
+   So a mark in the merge commit, or its absence, is not a property of the PR's commits.
+2. No source I read says that the AI mark is kept in a squash or merge commit (F5, F8). Only the pages listed in F5 and F8 were searched, so this reads "not found on these pages", not "does not exist".
+3. Reading the merge commit would measure a commit that a person may have written, where Swarmia's definition is "commits in the pull request" (F1, F2, F3). It would leave that definition. With the setting "the pull request title and description" (F6)
+   a line of the PR description could also be taken for a trailer.
+4. F4 is about cycle time and the Work Log, not about AI detection. I do not use it as a reason for or against the merge commit.
+5. The tool table is the place where DevLake keeps the text of each commit of the PR (F9, F11, F12), and the SQL already walks the same list (`pull_request_commits`) for m2 and m3. So the text is read there.
+6. `commits` stays first because it is the table that m4 and m5 already read (A2) and, where both tables have a commit, the texts are the same apart from the last line break (F12). An empty text counts as no text (`NULLIF`), so the tool table is read then, too.
+   Which of the two tables is filled depends on how the import was configured (`commits` comes from a conversion that is off by default, "EnabledByDefault: false", see "DevLake data"); this order does not depend on that.
+7. The two shapes of the text (real line breaks, JSON string) are both matched, for either table (Text matching). The JSON-string shape comes from the REST path (F10); in the real data of U4 the tool table has only the real-line-break shape (F12), so
+   the JSON-string place of m4 and m5 for the tool text is tested by the synthetic scenes only (Q60, Q61).
+
+**Effect on the numbers (U4, docs/validation/u4-real-data.md sections 5 and 6).** The text of a commit was readable for 267 of the 275 PRs opened in the period (97.1%; 45, 16.4%, before D15). The other 8 PRs have no commit in GitHub either (their `pull_request_commits`
+has no row). m4 is found for 9 of the 9 PRs that have it in GitHub's data (4 of 9 after A2). Of the 297 PRs, 297 have every item equal (292 before D15); class (a), (b), (c), (d): 0, 0, 0, 0. m5 has no PR in this data, so it is measured on the synthetic scenes only.
+The check `prs_without_commit_message` now counts the PRs with no text in either table (8); the new check `prs_commit_message_from_tool_table` counts the PRs that have a commit whose text came from the tool table (224).
+
+Scenes: `fixture_u2.sql` Q57 (text only in the tool table, trailer in mixed case: m4), Q58 (both tables, the domain text has no mark and wins: no hit), Q59 (domain text `''`, mark in the tool table: m4), Q60 (JSON-string text only in the tool table, `Made-with: Cursor`: m5),
+Q61 (JSON-string text, `Co-Authored-By: Claude`: m4), Q62 (real line breaks, `Made-with: Cursor` in mixed case: m5). Mutations: Appendix B4.
 
 ### Identity list
 
@@ -281,6 +341,7 @@ what it does not want.
 - **Take one tool per PR (the first mark that hits).** Rejected: Swarmia allows several (L99), and the exclusive rule gives different groups (mutation M2).
 - **Use the commit author's GitHub login.** Not possible: `pull_request_commits` has name and e-mail only. Swarmia matches accounts; here names and e-mails are matched, which is a difference that U4 has to measure.
 - **Remove generated files from batch size.** Not done: the SQL has no list of files; the DevLake scope setting is named above.
+- **Read the merge (squash) commit of a merged PR for m4 and m5.** Rejected (D15): its text depends on the settings of the repository and on the person who merges, and the mark is no longer a property of "commits in the pull request".
 
 ## Consequences and limits
 
@@ -291,6 +352,28 @@ what it does not want.
 - Review agents that write only a summary comment: **Swarmia counts CodeRabbit's summary comment.** "When CodeRabbit doesn't find anything to flag, it posts a summary comment instead of a formal review. Swarmia still counts the pull request as reviewed by CodeRabbit" (vendor/swarmia_def_review_agents.txt L75; https://help.swarmia.com/features/ai-tools/review-agents; retrieved 2026-10-20).
   **This SQL does not:** m6 reads only `REVIEW` and `DIFF` rows (D13), and a summary comment that is not a formal review is not stored as a `REVIEW` row (the comment types in DevLake are `NORMAL`, `DIFF` and `REVIEW`: upstream/beta18/pull_request_comment.go.txt L44-L46 (https://github.com/apache/devlake/blob/v1.0.3-beta18/backend/core/models/domainlayer/code/pull_request_comment.go, retrieved 2026-10-20); I did not trace which type an issue comment gets), so such a PR is not in `review_agent` here. This is a difference (this SQL gives lower review_agent numbers for CodeRabbit).
   The Codex case ("no issues" is a plain comment or a reaction) is not counted by Swarmia either (vendor/swarmia_def_review_agents.txt L79-L84; https://help.swarmia.com/features/ai-tools/review-agents; retrieved 2026-10-20), so there the two agree.
+- **A DevLake without the GitHub plugin (adjustment point of D15).** The SQL reads the table `_tool_github_commits` through the CTE `tool_commits`. That table belongs to the GitHub plugin: the plugin lists it among its tables and creates it in its
+  migration scripts, and DevLake can be built with only the plugins named in `DEVLAKE_PLUGINS`. In a DevLake built without the GitHub plugin the table is missing and the query stops with an error "table does not exist".
+  Sources (saved files, relative to `research/v3/upstream/beta18/`; line numbers are those of the saved file; the URL of each is `https://github.com/apache/devlake/blob/v1.0.3-beta18/` plus the path on line 1; retrieved 2026-10-21 unless noted):
+  `github_impl.go.txt` L87 (`backend/plugins/github/impl/impl.go`, retrieved 2026-10-20): `&models.GithubCommit{},` in the list of `GetTablesInfo`; L176-L177 of the same file: the plugin returns its migration scripts, `func (p Github) MigrationScripts() []plugin.MigrationScript {` and `return migrationscripts.All()`;
+  `github_migrationscripts_20220715_add_init_tables.go.txt` L96 (`backend/plugins/github/models/migrationscripts/20220715_add_init_tables.go`): `&archived.GithubCommit{},` in the list of `AutoMigrateTables` (L37 has the same type in the `DropTables` list at the start of the script);
+  `build-plugins.sh.txt` L36 (`backend/scripts/build-plugins.sh`): `DEVLAKE_PLUGINS=github,jira $0 [golang build flags...]`, and L60-L62: `PLUGINS=` then `for p in $(echo "$DEVLAKE_PLUGINS" | tr "," "\n"); do` and `PLUGINS="$PLUGINS $PLUGIN_SRC_DIR/$p"`.
+  I did not build or run a DevLake without the GitHub plugin; the statement that the table is then missing follows from these lines.
+  **What to change.** In `sql/mysql/ai_impact_parity.sql`, in the CTE `tool_commits`, replace the line
+
+  ```
+  SELECT t.sha, t.message FROM _tool_github_commits t
+  ```
+
+  by the line
+
+  ```
+  SELECT CAST(NULL AS CHAR(40)) AS sha, CAST(NULL AS CHAR) AS message FROM (SELECT 1) one WHERE 1 = 0
+  ```
+
+  (an empty list with the same two columns; it is the line that the comment in the SQL gives). The SQL then reads `commits` only, as before D15: `check:prs_commit_message_from_tool_table` is 0. Run on the real DevLake of U4 with this one line replaced
+  (SELECT only, 2026-10-21): `check:prs_without_commit_message` = 230 (it is 8 with the table), `check:prs_commit_message_from_tool_table` = 0. The synthetic tests have the table and expect its text, so they fail with this line (mutation D15-1, Appendix B4); that is expected.
+  The tool table of another plugin that has a column for the sha and one for the text of the commit could be put in the same place (`SELECT sha, message FROM <that table>`); I did not check the tables of other plugins.
 - Throughput per week is given per mode (`week:`) and per tool (`tool:<name>|week:`).
 - Swarmia attributes a cloud agent PR to the person who started it; here the PR keeps its author and is counted in the agent's group.
 - The commit identities (`Cursor Agent`, `cursoragent@cursor.com`, `Claude`, the trailer `Claude`) were read from public commits (30 items per query, GitHub's own ranking, not a random sample; `docs/agent_identities.md`, table B).
@@ -338,7 +421,7 @@ Reading: 1a/1c = 0 and 1b/1d = 1 (case: lower the text first); 2a = 1 and 2b = 0
 
 ## Appendix B: mutation tests (section 5-4 of the U2 specification, and the review fixes)
 
-Each row: the SQL was changed in one place (a copy in a scratch directory; the repository file was not touched), and the two tests of U2 were run on it (`include_own_markers` 0 and 1, 685 and 687 values compared). A mutant is detected when the number of mismatches is above 0 in at least one of the two tests (the own markers x1 and x2 are used only when `include_own_markers` is 1, so a change in them can only be seen by the second test: row M5-12). All 35 mutants below are detected (the run was made on the final SQL and the final fixture of that time, 54 PRs; the tests of U2 compare 685 and 687 values there, 697 and 699 values with the 56 PRs after U4).
+Each row: the SQL was changed in one place (a copy in a scratch directory; the repository file was not touched), and the two tests of U2 were run on it (`include_own_markers` 0 and 1, 685 and 687 values compared). A mutant is detected when the number of mismatches is above 0 in at least one of the two tests (the own markers x1 and x2 are used only when `include_own_markers` is 1, so a change in them can only be seen by the second test: row M5-12). All 35 mutants below (B1, B2) are detected (the run was made on the final SQL and the final fixture of that time, 54 PRs; the tests of U2 compare 685 and 687 values there, 697 and 699 values with the 56 PRs after U4, 734 and 736 values with the 62 PRs after D15). B3 and B4 are counted in their own sections.
 
 
 ### B1. The twelve mutations of the specification
@@ -406,3 +489,28 @@ Same method as B1 and B2 (a copy of the SQL in a scratch directory; the reposito
 | U1-2 | no fallback to `author_name` when the account row is missing (`a.user_name AS login`) | P16 | 14 | `m1_first_human_reaction copilot pr_count: expected 5 got 4` |
 
 All six are detected (A1, A2, U1-1, U1-1a, U1-1b, U1-2). Mutation A1 fails on the row `pr:github:GithubPullRequest:1:255` of `pr_classification` (marks, tools, modes, ai_used), mutation A2 on the row `...:256`, and both on the group values that depend on them.
+
+### B4. The mutations of D15 (U2 addendum; fixture of 62 PRs)
+
+Same method as B1 to B3: a copy of the SQL in a scratch directory with one change, the two tests of U2 run on it (`include_own_markers` 0 and 1; 734 and 736 values compared), the repository file not touched. A mutant is detected when the number of mismatches is above 0 in at least one of the two tests.
+All 12 mutants below are detected. "Scenes" are the PRs of the fixture whose `pr_classification` row differs in the run with own markers off (checked by running each mutant and listing the differing rows); in D15-4b only a check value differs.
+In the mutants D15-3 to D15-3-m5json the text is lowered only when it came from `commits`: `LOWER(pc.message)` is replaced by `CASE WHEN pc.from_tool = 1 THEN pc.message ELSE LOWER(pc.message) END` (that is, no `LOWER()` on the tool side).
+
+| # | Change | Scenes (fixture) | Mismatches, own markers off | Mismatches, own markers on | First mismatch (own markers off) |
+|---|---|---|---|---|---|
+| D15-1 | the tool table is not read (the line of `tool_commits` replaced by the empty list of the adjustment point) | Q57, Q59, Q60, Q61, Q62 (text only in the tool table, or `''` in `commits`) | 63 | 62 | `time_to_first_review tool:claude prs: expected 10 got 7` |
+| D15-2 | order reversed: the tool table first, `commits` second | Q58 (both tables, the domain text has no mark and must win) | 34 | 33 | `time_to_first_review tool:claude prs: expected 10 got 11` |
+| D15-3 | no `LOWER()` on the text that came from the tool table, in the 4 places of m4 and m5 | Q57, Q59, Q60, Q61, Q62 (all have the mark in mixed case) | 61 | 60 | `time_to_first_review tool:claude prs: expected 10 got 7` |
+| D15-3a | same, m4 only (2 places) | Q57, Q59, Q61 | 45 | 45 | `time_to_first_review tool:claude prs: expected 10 got 7` |
+| D15-3b | same, m5 only (2 places) | Q60, Q62 | 40 | 41 | `time_to_first_review tool:cursor prs: expected 12 got 10` |
+| D15-3-m4real | same, m4, real-line-break place only | Q57, Q59 | 39 | 40 | `time_to_first_review tool:claude prs: expected 10 got 8` |
+| D15-3-m4json | same, m4, JSON-string place only | Q61 | 34 | 36 | `time_to_first_review tool:claude prs: expected 10 got 9` |
+| D15-3-m5real | same, m5, real-line-break place only | Q62 | 35 | 36 | `time_to_first_review tool:cursor prs: expected 12 got 11` |
+| D15-3-m5json | same, m5, JSON-string place only | Q60 | 35 | 36 | `time_to_first_review tool:cursor prs: expected 12 got 11` |
+| D15-4 | `NULLIF` removed (in the text and in the flag `from_tool`) | Q59 (`''` in `commits`, the mark in the tool table) | 35 | 37 | `time_to_first_review tool:claude prs: expected 10 got 9` |
+| D15-4a | `NULLIF` removed in the text only | Q59 | 34 | 36 | `time_to_first_review tool:claude prs: expected 10 got 9` |
+| D15-4b | `NULLIF` removed in the flag `from_tool` only | Q59 (the flag decides `check:prs_commit_message_from_tool_table`) | 1 | 1 | `diagnostics check:prs_commit_message_from_tool_table value: expected 5 got 4` |
+
+Where this list comes from: the 12 mutants were made by a script (`mutate.py`, in the working folder outside this repository, not published) that applies each change to a copy of the SQL and runs the two tests; it was run again on 2026-10-21 for this table and gave the numbers above.
+The change of each mutant is one replacement of text in the SQL: the line of `tool_commits` (D15-1), the `COALESCE(...)` line (D15-2, D15-4, D15-4a), the `CASE WHEN ... AS from_tool` line (D15-4, D15-4b) and the four `REGEXP_LIKE(LOWER(pc.message), ...)` calls of m4 and m5 (D15-3 and the rows below it).
+The four mutants that the specification asks for are D15-1 (tool table not read), D15-2 (order reversed), D15-3 (`LOWER()` removed on the tool side) and D15-4 (`NULLIF` removed); the other eight take each place of those changes alone.
