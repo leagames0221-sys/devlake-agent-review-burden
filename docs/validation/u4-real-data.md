@@ -7,7 +7,7 @@ Record of the U4 check (SPEC U4), third run (after D15). Two public repositories
 - **297 PRs compared, 297 of them with every item equal** (7062 of 7062 items equal). Times, sizes, outcomes, the period flags, U1's agent group, (1) and (1B) are equal on every PR, and so are m1 to m6, x1 and x2, the tool and mode groups. The 289 / 291 group values (parity / own markers) and the 63 U1 group values of each of the three sets are equal too, with no replacement of any PR's group (section 8).
 - **Three runs of the same check on the same DevLake database** (no new import between them; the raw data of GitHub and `independent_calc.py` are the same in all three):
   - **First run (SQL of commit 665e049):** 253 of 297 PRs with every item equal. Two defects of the SQL (class (a)): **A1 (m1)**, DevLake's GraphQL path stores the author of a bot's PR without `[bot]` (`pull_requests.author_name` is `cursor`, `claude`, `copilot-swe-agent`) while `accounts.user_name` is `cursor[bot]`, `claude[bot]`, `Copilot`: 43 PRs had lost the m1 mark; **A2 (m4, m5)**, `commits.message` is a `longblob` in the real DevLake (the test schema had `LONGTEXT`), so `LOWER()` and `REGEXP_LIKE` were case-sensitive and the usual `Co-Authored-By: Claude` line was not found (0 of the 9 PRs that have an m4 mark in GitHub's data).
-  - **Second run (A1 and A2 corrected):** 292 of 297 PRs with every item equal. The 5 PRs left, all on m4, were class (c): `commits` had no text for the commits of their branch (45 of the 275 PRs opened in the period had a text, 16.4%).
+  - **Second run (A1 and A2 corrected):** 292 of 297 PRs with every item equal. The 5 PRs left, all on m4, were classed (c) (DevLake lacks the data) by the rule decided before the run: `commits` had no text for the commits of their branch (45 of the 275 PRs opened in the period had a text, 16.4%). D15 later found that the text was in DevLake's tool table, so the cause was that the SQL read only `commits`.
   - **Third run (this record; SQL of commit bbfc1d3, D15):** the text of a commit of a PR is also read from DevLake's GitHub tool table `_tool_github_commits` when `commits` has none. 297 of 297 PRs have every item equal; (a), (b), (c), (d) = 0, 0, 0, 0. The text of the commits could be read for 267 of the 275 PRs opened in the period (97.1%); the other 8 have no commit in GitHub either (section 6). m4 is found for 9 of the 9 PRs that have it in GitHub's data.
 - The merge (squash) commit of a PR is not used for m4 and m5, although `commits` has it for most merged PRs (ADR 0002, D15; section 6).
 - Mutant M3 (section 9) is caught: 28 PRs differ on time to first review. The seven checks of ADR 0003 on a real DevLake are in section 10; the importer works on the real tables (102 rows written).
@@ -68,6 +68,8 @@ Two departures from the specification, found before this trip and kept as they a
 
 Classes of a difference (SPEC U4 3-3 and 4-3): (a) the SQL is wrong; (b) the independent script is wrong; (c) DevLake lacks the data, only for the causes listed before the run (PR created before the start of the Data Time Range; more than 100 commits or reviews; m4/m5 on a PR whose branch commits have no message in DevLake; PRs dropped by `GITHUB_PR_EXCLUDELIST`; comments deleted later); (d) the PR changed between the DevLake import and the raw fetch.
 
+In the second run the 5 m4 PRs were classed (c) by this rule. D15 showed that their text was in DevLake's GitHub tool table, so the cause was that the SQL read only `commits` (fixed in the SQL, commit bbfc1d3); in the third run no PR is in class (c).
+
 ## 5. Result per item
 
 | item | differing PRs | compared PRs |
@@ -105,7 +107,7 @@ Classes of a difference (SPEC U4 3-3 and 4-3): (a) the SQL is wrong; (b) the ind
 | (c) DevLake lacks the data | 0 | |
 | (d) changed after the import | 0 | |
 
-No item differs on any PR. In the second run (before D15) m4 differed on 5 PRs (class (c)) and the tool, mode and ai_used items of one of them with it; those 5 PRs are equal on every item now (section 6).
+No item differs on any PR. In the second run (before D15) m4 differed on 5 PRs (classed (c) at the time) and the tool, mode and ai_used items of one of them with it; those 5 PRs are equal on every item now (section 6).
 
 **Not triggered in this data:** PRs created before the Data Time Range start: 0; PRs with more than 100 commits or more than 100 reviews: 0; PRs dropped by `GITHUB_PR_EXCLUDELIST`: the variable is not set; PRs changed after the import (class (d)): 0.
 
@@ -116,7 +118,7 @@ m4 (`Co-authored-by:`) and m5 (`Made-with: Cursor`) read the text of the commits
 1. the domain table `commits`, column `message` (a `longblob`, converted with `CONVERT(... USING utf8mb4)`); an empty text counts as no text;
 2. if there is none, DevLake's GitHub tool table `_tool_github_commits`, column `message` (`longtext`), joined on the commit sha (its primary key is `sha` alone).
 
-The merge (squash) commit of the PR, `pull_requests.merge_commit_sha`, is not read. Why is in ADR 0002, D15 (the text of a squash commit depends on the settings of the repository and on the person who merges; no source says the mark is kept; reading it would leave Swarmia's definition, "commits in the pull request"). For the record, from the same database: the merge commit is in `commits` for 226 of the 234 PRs created in the period and merged.
+The merge (squash) commit of the PR, `pull_requests.merge_commit_sha`, is not read. Why is in ADR 0002, D15 (the text of a squash commit depends on the settings of the repository and on the person who merges; the Swarmia and GitHub pages searched (ADR 0002 D15, F5 and F8) do not say the mark is kept; reading it would leave Swarmia's definition, "commits in the pull request"). For the record, from the same database: the merge commit is in `commits` for 226 of the 234 PRs created in the period and merged.
 
 All counts in this section are SELECTs on the DevLake database `lake` (2026-10-21, read only; the file `counts_d15_now.sql` is outside this repository); the two `check:` values are from the SQL of the repo on the same database.
 
@@ -144,20 +146,22 @@ So `commits` has the text of 197 of the 767 commits of these PRs, the tool table
 
 **The 8 PRs without a text.** Each has no row in `pull_request_commits` (SELECT: 8 PRs opened in the period without such a row, all with the status CLOSED; PRs that have commit rows but no text: 0). They are not a lack of data in DevLake: in GitHub's saved answers each of these 8 PRs is closed and not merged, its `commits` field is 0 and the list `pulls/{n}/commits` is empty, and the independent script has no commit message for them either (8 PRs). Their m4 and m5 are empty on both sides.
 
-**m4 on real data.** 9 PRs have an m4 mark in GitHub's data. The first run found 0 of them (A2), the second 4 (the text of the other 5 was not in `commits`), the third 9. The 5 PRs that were class (c) in the second run are sanity-io/cli #1841, #1864, #1911, #1916, #1923; all of them are merged.
+**m4 on real data.** 9 PRs have an m4 mark in GitHub's data. The first run found 0 of them (A2), the second 4 (the text of the other 5 was not in `commits`), the third 9. The 5 PRs that were classed (c) in the second run are sanity-io/cli #1841, #1864, #1911, #1916, #1923; all of them are merged.
+
+**The merge commit of these 5 PRs** (SELECT, 2026-10-21; not used by the SQL): it is in `commits` for 5 of the 5, and has one parent for 5 of them. A `Co-authored-by: Claude` line at the start of a line is in its text for #1864 and #1916 only; for the other 3 PRs the mark is not in the merge commit, although it is in their branch commits. Of the 11 branch commits of these PRs, 0 are in `commits` and 11 are in `_tool_github_commits`. So the merge commit would have found the mark for 2 of the 5 PRs, the branch commits find it for all.
 m5 has no PR in this data, so its place for the tool text is measured on the synthetic scenes only (ADR 0002, Appendix B4).
 
 **The two tables agree where both have the commit.** 1,201 shas are in both tables; their texts are equal once the line break at the end is removed (1,201 of 1,201; 949 domain texts end with a line break, 0 tool texts do; exactly equal: 252). In the tool table 3,050 of the 4,976 texts have a line break (the others are one line); none starts with a quote, none contains the two characters `\n`, none is empty. So the tool table of this data has only the real-line-break shape; the JSON-string shape, which the REST path would give, is tested on synthetic scenes only.
 
 ## 7. Defects and gaps found on the real data, and the fixes
 
-The first run (SQL of commit 665e049) found two defects in the SQL itself (class (a)). They were corrected (commit 076522f), the synthetic tests got a scene for each, and the whole check was run again (second run). The second run showed a gap of data, not of the SQL (class (c)), which D15 closes (commit bbfc1d3; third run = this record). The sources, the SELECTs on the real database and their results are in ADR 0002, sections "What a real DevLake showed (U4): two corrections, A1 and A2" and "D15"; the mutations that fail without the corrections are in its Appendix B3 and B4.
+The first run (SQL of commit 665e049) found two defects in the SQL itself (class (a)). They were corrected (commit 076522f), the synthetic tests got a scene for each, and the whole check was run again (second run). The second run left 5 PRs classed (c) by the rule decided before the run (DevLake lacks the data); D15 found that the text was in DevLake's tool table, so the cause was that the SQL read only `commits`, and the SQL was fixed (commit bbfc1d3; third run = this record). The sources, the SELECTs on the real database and their results are in ADR 0002, sections "What a real DevLake showed (U4): two corrections, A1 and A2" and "D15"; the mutations that fail without the corrections are in its Appendix B3 and B4.
 
 | | first run (665e049) | second run (A1, A2) | third run (D15, bbfc1d3) |
 |---|---|---|---|
 | PRs with every item equal | 253 of 297 (6988 of 7062 items) | 292 of 297 (7051 of 7062 items) | 297 of 297 (7062 of 7062 items) |
 | (a) the SQL is wrong | 43 PRs (43 on m1, 4 of these also on m4) | 0 | 0 |
-| (c) DevLake lacks the data (PRs with at least one item of this class) | 5 | 5 (all on m4) | 0 |
+| (c) DevLake lacks the data, as classed at the time (PRs with at least one item of this class) | 5 | 5 (all on m4) | 0 |
 | m1 differs | 43 PRs | 0 | 0 |
 | m4 differs | 9 PRs (0 of 9 found) | 5 PRs (4 of 9 found) | 0 PRs (9 of 9 found) |
 | tools / modes / ai_used differ | 5 / 5 / 5 | 1 / 1 / 1 | 0 / 0 / 0 |
@@ -166,9 +170,9 @@ The first run (SQL of commit 665e049) found two defects in the SQL itself (class
 
 **A1 (m1).** For 43 PRs (`cursor` 33, `claude` 8, `copilot-swe-agent` 2) GitHub's REST login of the author is the bot's login with `[bot]` (type `Bot`), and DevLake's `pull_requests.author_name` is the login without it. The `accounts` row of `pull_requests.author_id` has the `[bot]` form for `cursor` and `claude` (`is_bot = 1`) and `Copilot` for `copilot-swe-agent`; none of the 1,604 PRs is without an account row. The m1 patterns of the identities list are written for the REST form, so they never matched `author_name`; 4 PRs (2 `copilot`, 2 `cursor`; no other mark) were in `everything_else` instead of their tool. **Fix:** m1 matches the login of the account (`accounts.user_name`); `pull_requests.author_name` only when there is no account row. A `[bot]` made optional in the pattern was not used: a person named `cursor` or `claude` would be taken for an agent. U1's rules 1 and 2 had the same form and got the same fix (U1's values on this data are identical before and after: all 14 `copilot-swe-agent` PRs carry a `copilot/` branch). The review-agent mark m6 already read `accounts` and agreed with GitHub on all 297 PRs in the first run (2 PRs have it).
 
-**A2 (m4, m5).** `information_schema` says `commits.message` is `longblob` with no collation. On the commit of PR sanity-io/cli #1863 in the first run, `LOCATE('Co-Authored-By', message)` found the line and `LOCATE('co-authored-by', LOWER(message))` did not; on all rows of `commits` the m4 pattern found 0. m5 (`Made-with: Cursor`) has the same form; there is no PR with an m5 line in this data, so it is not measured on real data (its scene is in the synthetic tests, whose commit text is now a LONGBLOB too). **Fix:** `CONVERT(commits.message USING utf8mb4)` before `LOWER()` and `REGEXP_LIKE`; `tests/schema_mysql.sql` has `commits.message LONGBLOB`. Of the 9 PRs with an m4 line in GitHub's data, 4 were found after this fix and the other 5 were class (c) (no text of their branch commits in `commits`).
+**A2 (m4, m5).** `information_schema` says `commits.message` is `longblob` with no collation. On the commit of PR sanity-io/cli #1863 in the first run, `LOCATE('Co-Authored-By', message)` found the line and `LOCATE('co-authored-by', LOWER(message))` did not; on all rows of `commits` the m4 pattern found 0. m5 (`Made-with: Cursor`) has the same form; there is no PR with an m5 line in this data, so it is not measured on real data (its scene is in the synthetic tests, whose commit text is now a LONGBLOB too). **Fix:** `CONVERT(commits.message USING utf8mb4)` before `LOWER()` and `REGEXP_LIKE`; `tests/schema_mysql.sql` has `commits.message LONGBLOB`. Of the 9 PRs with an m4 line in GitHub's data, 4 were found after this fix and the other 5 were classed (c) at the time (no text of their branch commits in `commits`; see D15 below).
 
-**D15 (class (c)).** The text of the branch commits is in DevLake, in `_tool_github_commits`, although not in `commits`. **Fix:** m4 and m5 read `COALESCE(NULLIF(CONVERT(commits.message USING utf8mb4), ''), _tool_github_commits.message)`; the tool table is read through a CTE that is an adjustment point for a DevLake without the GitHub plugin. The merge commit is not used. Section 6 gives the coverage; ADR 0002 gives the sources and the reasons. Result: the 5 class-(c) PRs and all other PRs are equal on every item.
+**D15 (the 5 PRs classed (c) in the second run).** The text of their branch commits is in DevLake, in `_tool_github_commits`, although not in `commits`: the cause was that the SQL read only `commits`. **Fix:** m4 and m5 read `COALESCE(NULLIF(CONVERT(commits.message USING utf8mb4), ''), _tool_github_commits.message)`; the tool table is read through a CTE that is an adjustment point for a DevLake without the GitHub plugin. The merge commit is not used. Section 6 gives the coverage; ADR 0002 gives the sources and the reasons. Result: the 5 PRs that were classed (c) and all other PRs are equal on every item.
 
 ## 8. Group values
 
@@ -219,7 +223,7 @@ U1 (agents of U1, PRs opened in the period; (1) = first human reaction, (1B) = t
 | other_bot | 68 | 52 | 81 | 52 | 81 |
 | no_marker | 158 | 46 | 640 | 46 | 640 |
 
-Checks of these tables. Compared as they are (the group of every PR from GitHub's raw data against the group of the SQL, with no replacement of any PR's group), 289 of 289 (parity markers) and 291 of 291 (own markers) group values of both repositories together are equal (counts, means, medians, size shares, weekly counts, outcomes); alliance-hq alone: 284 of 284 and 284 of 284; sanity-io/cli alone: 287 of 287 and 289 of 289; all 63 U1 group values of each of the three sets (63 of 63, 63 of 63, 63 of 63 equal). In the second run 81 and 81 values differed, all because of the one PR whose m4 line was not in DevLake; that needed a replacement of that PR's group to show that the means, medians, counts and weekly counts were right given the marks. After D15 no replacement is needed.
+Checks of these tables. Compared as they are (the group of every PR from GitHub's raw data against the group of the SQL, with no replacement of any PR's group), 289 of 289 (parity markers) and 291 of 291 (own markers) group values of both repositories together are equal (counts, means, medians, size shares, weekly counts, outcomes); alliance-hq alone: 284 of 284 and 284 of 284; sanity-io/cli alone: 287 of 287 and 289 of 289; all 63 U1 group values of each of the three sets (63 of 63, 63 of 63, 63 of 63 equal). In the second run 81 and 81 values differed, all because of the one of the 5 PRs whose group changed (its m4 line was not in `commits`); that needed a replacement of that PR's group to show that the means, medians, counts and weekly counts were right given the marks. After D15 no replacement is needed.
 
 ## 9. The comparison can catch a wrong SQL (mutant M3)
 
