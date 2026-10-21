@@ -1,0 +1,26 @@
+# Grafana "provisioning" file for the data source of the Grafana that comes with DevLake: the same data source (uid devlake-mysql-api, which every panel of
+# dashboards/json/ai-impact.json uses), but with the database user grafana_ro, who has SELECT on lake.* and nothing else (U6, ADR 0004 "A read-only database user for Grafana").
+# Why: dashboard variable values can also come from the page URL and reach the query; Grafana "doesn't validate the safety of queries" and says that the
+# database user of a data source should have only SELECT (https://grafana.com/docs/grafana/latest/datasources/mysql/configure/). DevLake's start script
+# (https://github.com/apache/devlake/blob/v1.0.3-beta18/grafana/scripts/entrypoint.sh, lines 159-188 and 226-233) tries to delete all data sources and create its own one as MYSQL_USER; when that fails it "keeps the existing one",
+# so a data source that is only changed through MYSQL_USER stays as it was. A provisioning file is the documented way: "If the data source already exists,
+# Grafana reconfigures it to match the provisioned configuration file." (https://grafana.com/docs/grafana/latest/administration/provisioning/).
+# The password is read from the environment of the grafana container: GRAFANA_DB_RO_PASSWORD (set by tools/grafana_install.py --readonly-db from the .env of the
+# compose folder; tools/grafana_readonly_user.py apply puts the line there). `$NAME` with one `$` is used, as the page says for a value that may contain `$`
+# (same page); the password this repo generates has only hex digits.
+# tools/grafana_install.py --readonly-db mounts this file read-only at /etc/grafana/provisioning/datasources/ai-impact-ro.yml. It is a file of its own: the file
+# that DevLake's start script writes (datasource.yml, entrypoint.sh lines 121-137) is not touched.
+apiVersion: 1
+
+datasources:
+  - name: mysql
+    uid: devlake-mysql-api
+    type: mysql
+    access: proxy
+    url: mysql:3306
+    database: lake
+    user: grafana_ro
+    isDefault: true
+    editable: false
+    secureJsonData:
+      password: $GRAFANA_DB_RO_PASSWORD
