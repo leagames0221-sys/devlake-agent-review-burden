@@ -9,6 +9,12 @@ Apache DevLake は、GitHub などの開発の記録を集めて分析する OSS
 
 ![Grafana の画面。AI ツール別に、PR のマージ数・最初のレビューまでの時間・サイクルタイム・レビューの時間・変更の大きさが並ぶ](docs/images/grafana-ai-tools.png)
 
+
+
+https://github.com/user-attachments/assets/308e3073-799f-431c-b6e2-72a882b51874
+
+
+
 画面は、手元の DevLake に取り込んだ公開 repo 2 本の、2026-09-01〜2026-09-30（UTC）の実データです。人の名前や login は画面に出しません（ツールの bot の名前は出します）。
 
 ## 既存の物との違い
